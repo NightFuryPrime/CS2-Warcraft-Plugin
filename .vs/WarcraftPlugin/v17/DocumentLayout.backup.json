@@ -1,0 +1,155 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\warcraftplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:warcraftplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\classes\\ranger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:classes\\ranger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\menu\\menuoption.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:menu\\menuoption.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\menu\\menubuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:menu\\menubuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\menu\\warcraftmenu\\classmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:menu\\warcraftmenu\\classmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\core\\database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:core\\database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\classes\\deathweaver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:classes\\deathweaver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|c:\\users\\legend\\desktop\\geminitests\\cs2warcraftmod-master\\warcraftplugin\\warcraftplugin.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{8B2673A6-9754-419D-BA08-6AF351F19C9D}|WarcraftPlugin.csproj|solutionrelative:warcraftplugin.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Ranger.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Classes\\Ranger.cs",
+              "RelativeDocumentMoniker": "Classes\\Ranger.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Classes\\Ranger.cs",
+              "RelativeToolTip": "Classes\\Ranger.cs",
+              "ViewState": "AgIAAFAAAAAAAAAAAAAcwFAAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-21T11:20:54.3Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MenuOption.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\MenuOption.cs",
+              "RelativeDocumentMoniker": "Menu\\MenuOption.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\MenuOption.cs",
+              "RelativeToolTip": "Menu\\MenuOption.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-20T11:23:39.513Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MenuBuilder.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\MenuBuilder.cs",
+              "RelativeDocumentMoniker": "Menu\\MenuBuilder.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\MenuBuilder.cs",
+              "RelativeToolTip": "Menu\\MenuBuilder.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-20T11:23:33.358Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WarcraftPlugin.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.cs",
+              "RelativeDocumentMoniker": "WarcraftPlugin.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.cs",
+              "RelativeToolTip": "WarcraftPlugin.cs",
+              "ViewState": "AgIAAKYAAAAAAAAAAAAcwLQAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-19T08:11:08.906Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ClassMenu.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\WarcraftMenu\\ClassMenu.cs",
+              "RelativeDocumentMoniker": "Menu\\WarcraftMenu\\ClassMenu.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Menu\\WarcraftMenu\\ClassMenu.cs",
+              "RelativeToolTip": "Menu\\WarcraftMenu\\ClassMenu.cs",
+              "ViewState": "AgIAAGEAAAAAAAAAAAAmwIAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-19T08:01:26.831Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Database.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Core\\Database.cs",
+              "RelativeDocumentMoniker": "Core\\Database.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Core\\Database.cs",
+              "RelativeToolTip": "Core\\Database.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAIBZwD4AAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-19T00:53:31.266Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "DeathWeaver.cs",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Classes\\DeathWeaver.cs",
+              "RelativeDocumentMoniker": "Classes\\DeathWeaver.cs",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\Classes\\DeathWeaver.cs",
+              "RelativeToolTip": "Classes\\DeathWeaver.cs",
+              "ViewState": "AgIAABcAAAAAAAAAAAAwwDAAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-12T11:57:29.863Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "WarcraftPlugin",
+              "DocumentMoniker": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj",
+              "RelativeDocumentMoniker": "WarcraftPlugin.csproj",
+              "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj",
+              "RelativeToolTip": "WarcraftPlugin.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-12T11:49:25.621Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

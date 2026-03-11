@@ -1,0 +1,298 @@
+﻿{
+  //Menu + Core // MenÃ¼ + Ã‡ekirdek
+  "menu.selection.left": "<font color='red' class='fontSize-s'>â–¶ </font>",
+  "menu.selection.right": "<font color='red' class='fontSize-s'> â—€</font>",
+  "menu.option.select": "BoÅŸluk", // Space
+  "menu.option.select.dead": "E", // E (when dead)
+  "menu.option.exit": "Sekme", // Tab
+  "menu.option.up": "Wâ†‘", // Wâ†‘
+  "menu.option.down": "Sâ†“", // Sâ†“
+  "menu.exit": "Ã‡Ä±kÄ±ÅŸ", // Exit
+  "menu.select": "SeÃ§", // Select
+  "menu.navigate": "Gezin", // Navigate
+  "menu.more.options.below": "<center><img src='https://raw.githubusercontent.com/Wngui/CS2WarcraftMod/refs/heads/master/WarcraftPlugin/Resources/arrow-down.gif'></center><br>", // More options below
+  "menu.class": "Warcraft SÄ±nÄ±f MenÃ¼sÃ¼", // Warcraft Class Menu
+  "menu.class.total.levels": "Toplam Seviye", // Total Level
+  "menu.class.level": "seviye", // level
+  "menu.class.locked": "Kilitli (seviye {0})", // Locked (level {0})
+  "menu.skills.level": "Seviye", // Level
+  "menu.skills.available": "Yetenekleri geliÅŸtir ({0} mevcut)", // Upgrade skills ({0} available)
+  "menu.skills.ultimate.level": "seviye {0}", // level {0}
+  "menu.shop": "EÅŸya DÃ¼kkanÄ±", // Item Shop
+  "menu.shop.carry_limit": "{0} adetten fazla eÅŸya taÅŸÄ±yamazsÄ±n.", // limit placeholder
+  "menu.shop.already_owned": "Bu eÅŸyaya zaten sahipsin.", // You already own this item.
+  "menu.shop.not_enough_money": "Yeterli paran yok!", // Not enough money!
+  "menu.shop.bought": "SatÄ±n alÄ±ndÄ± {Green}[{Gold}{0}{Green}]", // Bought {Green}[{Gold}{0}{Green}]
+  "class.pending.change": "{Green} Bir sonraki turda {Orange}{0}{Green} olarak doÄŸacaksÄ±n!", // You will respawn as {0} next round!
+  "class.disabled": "{Green}Mevcut sÄ±nÄ±f {Red}devre dÄ±ÅŸÄ±{Green}! Åžu an {Orange}{0}{Default} olarak oynuyorsun.", // Current class is disabled! You are playing as {0}.
+  "xp.current": "Deneyim", // Experience
+  "xp.bonus.headshot": "Kafadan vuruÅŸ bonusu", // Headshot bonus
+  "xp.bonus.knife": "BÄ±Ã§ak bonusu", // Knife bonus
+  "xp.bonus.level": "Seviye bonusu", // level bonus
+  "xp.kill": "{Gold}+{0} XP {Default}{Green}{1}{Default}'yi Ã¶ldÃ¼rdÃ¼ÄŸÃ¼n iÃ§in {2}{3}{4}", // +{0} XP for killing {1} {2}{3}{4}
+  "xp.add": "{1} oyuncusuna {0} XP eklendi", // {0} XP added to player {1}
+  "xp.roundwin": "{Gold}+{0} XP {Default}raundu kazandÄ±ÄŸÄ±n iÃ§in", // +{0} XP for winning the round
+  "xp.assist": "{Gold}+{0} XP {Default}for assisting on {Green}{1}",
+  "xp.bomb.plant": "{Gold}+{0} XP {Default}for planting the bomb",
+  "xp.bomb.defuse": "{Gold}+{0} XP {Default}for defusing the bomb",
+  "xp.roundinfo": "{Gold}{0} {Grey}| {White}Seviye {White}{1} {Grey}| {Lime}{2}{Default}/{Green}{3}{Default} XP",
+  "ability.benefits.header": "Aktif avantajlar ({0})",
+  "ability.ready": "{0} hazÄ±r!", // {0} ready!
+  "ultimate.countdown": "Ulti hazÄ±r olmasÄ±na {0}s kaldÄ±", // {0}s until ultimate is ready
+  "no.ultimate": "Ulti seviyesi yok", // No ultimate level
+  "bonus.damage.health.attacker": "{Green}+{0} hasar {Gold}[{1}]", // +{0} damage [to {1}]
+  "bonus.damage.health.victim": "{Red}+{0} hasar {Gold}[{1}]'den", // +{0} damage from [{1}]
+  "bonus.damage.armor.attacker": "{Green}+{0} zÄ±rh hasarÄ± {Gold}[{1}]", // +{0} armor damage [to {1}]
+  "bonus.damage.armor.victim": "{Red}-{0} zÄ±rh {Gold}[{1}]'den", // -{0} armor from [{1}]
+  "player.healed": "{Green}+{0} HP {Default}{1}'den", // +{0} HP from {1}
+  "player.healed.healer": "{Green}{Default}{0} {Green}+{1} HP iyileÅŸtirdin", // You healed {0} for +{1} HP
+
+  //Commands, used in-game by typing !<command> // Komutlar, oyunda !<komut> yazarak kullanÄ±lÄ±r
+  "command.ultimate": "ulti", // ultimate
+  "command.changeclass": "sÄ±nÄ±fdeÄŸiÅŸtir", // changeclass
+  "command.reset": "sÄ±fÄ±rla", // reset
+  "command.factoryreset": "fabrikaayarÄ±", // factoryreset
+  "command.addxp": "xpekle", // addxp
+  "command.skills": "yetenekler", // skills
+  "command.shopmenu": "dÃ¼kkan", // shop
+  "command.help": "komutlar", // commands
+  "command.help.description": "{Green}SÄ±nÄ±f deÄŸiÅŸtirmek iÃ§in {Gold}!class{Green}, yetenek yÃ¼kseltmek iÃ§in {Gold}!skills{Green} yaz", // Type !class to change class, !skills to upgrade skills
+
+  //Adverts // Reklamlar
+  "advert.0": "{Green}Yeni bir sÄ±nÄ±f denemek mi istiyorsun? {Gold}!class{Green} yaz", // Want to try a new class? Type !class
+  "advert.1": "{Green}HarcanmamÄ±ÅŸ yetenek puanlarÄ±n mÄ± var? {Gold}!skills{Green} yaz", // Unspent skill points? Type !skills
+  "advert.2": "{Green}Yeni yetenekler denemek mi istiyorsun? {Gold}!reset{Green} yaz", // Want to try new skills? Type !reset
+  "advert.3": "{Green}Ultini kullanmak mÄ± istiyorsun? Konsola 'bind <tuÅŸ> ultimate' yaz. Ã–rnek: {Grey}bind x ultimate", // Want to use your ultimate? Type 'bind <key> ultimate' in console. Example: bind x ultimate
+  "advert.4": "{Green}EÅŸya satÄ±n almak mÄ± istiyorsun? {Gold}!shop{Green} yaz", // Want to buy items? Type !shop to open the shop menu
+
+  //Stock class names // SÄ±nÄ±f isimleri
+  "barbarian": "Barbar", // Barbarian
+  "mage": "BÃ¼yÃ¼cÃ¼", // Mage
+  "necromancer": "Nekromant", // Necromancer
+  "paladin": "Paladin", // Paladin
+  "ranger": "Korucu", // Ranger
+  "rogue": "DÃ¼zenbaz", // Rogue
+  "shapeshifter": "Åžekil DeÄŸiÅŸtiren", // Shapeshifter
+  "tinker": "Teker", // Tinker
+  "shadowblade": "GÃ¶lge KÄ±lÄ±cÄ±", // Shadowblade
+  "dwarf_engineer": "CÃ¼ce MÃ¼hendis", // Dwarf Engineer
+  "death_weaver": "Ã–lÃ¼m Dokuyucusu",
+  "hammerstorm": "Ã‡ekiÃ§ FÄ±rtÄ±nasÄ±",
+  "sacred_warrior": "Kutsal SavaÅŸÃ§Ä±",
+  "silent_assassin": "Sessiz SuikastÃ§Ä±",
+
+  //Stock class abilities // SÄ±nÄ±f yetenekleri
+  "barbarian.ability.0": "Katliam", // Massacre
+  "barbarian.ability.0.description": "PompalÄ± tÃ¼feklerle 5/10/15/20/25 ekstra hasar verir.", // Deal 5/10/15/20/25 extra damage with shotguns.
+  "barbarian.ability.1": "SavaÅŸÃ§Ä± DayanÄ±klÄ±lÄ±ÄŸÄ±", // Warrior Endurance
+  "barbarian.ability.1.description": "CanÄ±nÄ± 20/40/60/80/100 artÄ±rÄ±r.", // Increase health by 20/40/60/80/100.
+  "barbarian.ability.2": "Patlayan Varil", // Exploding Barrel
+  "barbarian.ability.2.description": "AteÅŸ ederken %3-13 patlayan varil fÄ±rlatma ÅŸansÄ± (silaha gÃ¶re deÄŸiÅŸir).", // 3-13% chance to throw an exploding barrel when firing (depends on weapon).
+  "barbarian.ability.3": "Kan Arzusu", // Bloodlust
+  "barbarian.ability.3.description": "10s boyunca: Sonsuz mermi, %30 daha hÄ±zlÄ± ve sÃ¼rekli can yenileme.", // For 10s: infinite ammo, 30% faster, and constant health regen.
+
+  "death_weaver.ability.0": "Cripple",
+  "death_weaver.ability.0.description": "%33 ÅŸans ile 1/1.5/2/2.5/3 saniye yavaÅŸlatma uygular.",
+  "death_weaver.ability.1": "Unholy Frenzy",
+  "death_weaver.ability.1.description": "10-50% ekstra hasar verme ÅŸansÄ±.",
+  "death_weaver.ability.2": "Necromancer Master",
+  "death_weaver.ability.2.description": "Seviyeye gÃ¶re %50-100 aralÄ±ÄŸÄ±nda saldÄ±rÄ± tÃ¼feÄŸi ile doÄŸarsÄ±n.",
+  "death_weaver.ability.3": "Raise Skeleton",
+  "death_weaver.ability.3.description": "Rastgele bir takÄ±m arkadaÅŸÄ±nÄ± diriltir.",
+
+  "mage.ability.0": "AteÅŸ Topu", // Fireball
+  "mage.ability.0.description": "Molotoflar 40/80/120/160/200 hasar veren bÃ¼yÃ¼k patlama yapar.", // Molotovs create a big explosion dealing 40/80/120/160/200 damage.
+  "mage.ability.1": "Buz IÅŸÄ±nÄ±", // Ice Beam
+  "mage.ability.1.description": "%5/10/15/20/25 ÅŸansla dÃ¼ÅŸmanlarÄ± dondurur.", // 5/10/15/20/25% chance to freeze enemies.
+  "mage.ability.2": "Mana KalkanÄ±", // Mana Shield
+  "mage.ability.2.description": "Her 5/2.5/1.7/1.3/1s'de 1 zÄ±rh yeniler.", // Regenerate 1 armor every 5/2.5/1.7/1.3/1s.
+  "mage.ability.3": "IÅŸÄ±nlanma", // Teleport
+  "mage.ability.3.description": "Ulti tuÅŸuna basÄ±nca baktÄ±ÄŸÄ±n yere Ä±ÅŸÄ±nlanÄ±rsÄ±n.", // Teleport to where you are looking when pressing ultimate.
+
+  "necromancer.ability.0": "Can SÃ¶mÃ¼rÃ¼sÃ¼", // Life Drain
+  "necromancer.ability.0.description": "VerdiÄŸin hasarÄ±n %6/12/18/24/30'u kadar can kazanÄ±rsÄ±n.", // Gain health equal to 6/12/18/24/30% of damage dealt.
+  "necromancer.ability.1": "Zehir Bulutu", // Poison Cloud
+  "necromancer.ability.1.description": "Sis bombalarÄ± her tikte 2/4/6/8/10 hasar verir.", // Smoke grenades deal 2/4/6/8/10 damage per tick.
+  "necromancer.ability.2": "BÃ¶lÃ¼nmÃ¼ÅŸ Ruh", // Split Soul
+  "necromancer.ability.2.description": "%16/32/48/64/80 ÅŸansla Ã¶lÃ¼mden kurtulursun.", // 16/32/48/64/80% chance to cheat death.
+  "necromancer.ability.3": "Ã–lÃ¼leri KaldÄ±r", // Raise Dead
+  "necromancer.ability.3.description": "SavaÅŸmasÄ± iÃ§in Ã¶lÃ¼ tavuk ordusu Ã§aÄŸÄ±rÄ±r.", // Summon an army of dead chickens to fight.
+
+  "paladin.ability.0": "Åžifa AurasÄ±", // Healing Aura
+  "paladin.ability.0.description": "200-600 birim mesafedeki takÄ±m arkadaÅŸlarÄ±nÄ± her birkaÃ§ saniyede 1-5 HP iyileÅŸtirir.", // Heal teammates within 200-600 units for 1-5 HP every few seconds.
+  "paladin.ability.1": "Kutsal Kalkan", // Holy Shield
+  "paladin.ability.1.description": "20/40/60/80/100 ek zÄ±rh verir.", // Grants 20/40/60/80/100 extra armor.
+  "paladin.ability.2": "Ä°lahi Darbe", // Divine Strike
+  "paladin.ability.2.description": "%15/30/45/60/75 ÅŸansla dÃ¼ÅŸmanÄ±n 5/10/15/20/25 zÄ±rhÄ±nÄ± kÄ±rar.", // 15/30/45/60/75% chance to break 5/10/15/20/25 enemy armor.
+  "paladin.ability.3": "Ä°lahi DiriliÅŸ", // Divine Resurrection
+  "paladin.ability.3.description": "Rastgele bir Ã¶lÃ¼ takÄ±m arkadaÅŸÄ±nÄ± anÄ±nda diriltir.", // Instantly revive a random dead teammate.
+
+  "ranger.ability.0": "Hafif AdÄ±mlar", // Light Steps
+  "ranger.ability.0.description": "Havadayken 10-2s bekleme sÃ¼resiyle dash atarsÄ±n (seviyeye gÃ¶re).", // Dash in air with 10-2s cooldown (by level).
+  "ranger.ability.1": "Tuzak Kur", // Set Trap
+  "ranger.ability.1.description": "10/20/30/40/50 hasar veren sahte bomba tuzak yerleÅŸtirir.", // Place a fake bomb trap dealing 10/20/30/40/50 damage.
+  "ranger.ability.2": "NiÅŸancÄ±", // Sharpshooter
+  "ranger.ability.2.description": "DÃ¼rbÃ¼nlÃ¼ silahlarla 2/4/6/8/10 ekstra hasar verir.", // Deal 2/4/6/8/10 extra damage with scoped weapons.
+  "ranger.ability.3": "Ok YaÄŸmuru", // Arrow Rain
+  "ranger.ability.3.description": "Ä°ÅŸaretli noktaya 10s boyunca ok yaÄŸdÄ±rÄ±r, dÃ¼ÅŸmanlarÄ± yavaÅŸlatÄ±r.", // Rain arrows on a marked spot for 10s, slowing enemies.
+
+  "rogue.ability.0": "Gizlilik", // Stealth
+  "rogue.ability.0.description": "Ã–ldÃ¼rdÃ¼ÄŸÃ¼nde 1/2/3/4/5s boyunca kÄ±smen gÃ¶rÃ¼nmez olursun.", // Become partially invisible for 1/2/3/4/5s after a kill.
+  "rogue.ability.1": "Sinsi SaldÄ±rÄ±", // Sneak Attack
+  "rogue.ability.1.description": "DÃ¼ÅŸmanÄ±n arkasÄ±ndan vurduÄŸunda 5/10/15/20/25 ekstra hasar verir.", // Deal 5/10/15/20/25 extra damage when hitting from behind.
+  "rogue.ability.2": "BÄ±Ã§ak DansÄ±", // Knife Dance
+  "rogue.ability.2.description": "BÄ±Ã§akla 12/24/36/48/60 ekstra hasar ve %10-50 daha hÄ±zlÄ± hareket edersin.", // Deal 12/24/36/48/60 extra knife damage and move 10-50% faster.
+  "rogue.ability.3": "Duman BombasÄ±", // Smoke Bomb
+  "rogue.ability.3.description": "Ã–lmek Ã¼zereyken otomatik duman bombasÄ± atarak Ã¶lÃ¼mden kurtulursun.", // Throw a smoke bomb automatically to escape death.
+
+  "shapeshifter.ability.0": "Uyarlanabilir KÄ±lÄ±k", // Adaptive Disguise
+  "shapeshifter.ability.0.description": "%8/16/24/32/40 ÅŸansla dÃ¼ÅŸman kÄ±lÄ±ÄŸÄ±nda doÄŸarsÄ±n.", // Spawn disguised as an enemy with 8/16/24/32/40% chance.
+  "shapeshifter.ability.1": "Ä°kiz", // Twin
+  "shapeshifter.ability.1.description": "5/10/15/20/25s sÃ¼ren hareketsiz bir klon yaratÄ±rsÄ±n.", // Create a stationary clone for 5/10/15/20/25s.
+  "shapeshifter.ability.2": "SahtekÃ¢r Sendromu", // Impostor Syndrome
+  "shapeshifter.ability.2.description": "%20/40/60/80/100 ÅŸansla radarda tespit edildiÄŸinde uyarÄ± alÄ±rsÄ±n.", // 20/40/60/80/100% chance to get a warning when spotted on radar.
+  "shapeshifter.ability.3": "DÃ¶nÃ¼ÅŸÃ¼m", // Transformation
+  "shapeshifter.ability.3.description": "SÄ±radan bir nesneye dÃ¶nÃ¼ÅŸÃ¼rsÃ¼n.", // Transform into an ordinary object.
+
+  "tinker.ability.0": "SaldÄ±rÄ± Dronu", // Attack Drone
+  "tinker.ability.0.description": "YakÄ±ndaki dÃ¼ÅŸmanlara saldÄ±ran bir drone yerleÅŸtirir. Hasar ve roket ÅŸansÄ± seviyeyle artar.", // Deploy a drone that attacks nearby enemies. Damage and rocket chance increase with level.
+  "tinker.ability.1": "Yedek ParÃ§alar", // Spare Parts
+  "tinker.ability.1.description": "%4/8/12/16/20 ÅŸansla mermi harcamazsÄ±n.", // 4/8/12/16/20% chance to not consume ammo.
+  "tinker.ability.2": "ZÄ±platÄ±cÄ± Tuzak", // Bouncer Trap
+  "tinker.ability.2.description": "OyuncularÄ± 500/1000/1500/2000/2500 gÃ¼Ã§le havaya fÄ±rlatan tuzak kurar.", // Place a trap that launches players with 500/1000/1500/2000/2500 force.
+  "tinker.ability.3": "Drone SÃ¼rÃ¼sÃ¼", // Drone Swarm
+  "tinker.ability.3.description": "YakÄ±ndaki tÃ¼m dÃ¼ÅŸmanlara hasar veren drone sÃ¼rÃ¼sÃ¼ Ã§aÄŸÄ±rÄ±r.", // Summon a drone swarm that damages all nearby enemies.
+
+  "shadowblade.ability.0": "GÃ¶lge AdÄ±m", // Shadow Step
+  "shadowblade.ability.0.description": "Hasar aldÄ±ÄŸÄ±nda %4/8/12/16/20 ÅŸansla dÃ¼ÅŸmanÄ±n arkasÄ±na Ä±ÅŸÄ±nlanÄ±rsÄ±n.", // 4/8/12/16/20% chance to teleport behind the enemy when damaged.
+  "shadowblade.ability.1": "KaÃ§Ä±nma", // Evasion
+  "shadowblade.ability.1.description": "%6/12/18/24/30 ÅŸansla gelen hasarÄ± tamamen engellersin.", // 6/12/18/24/30% chance to completely avoid incoming damage.
+  "shadowblade.ability.2": "Zehirli Darbe", // Venom Strike
+  "shadowblade.ability.2.description": "SaldÄ±rÄ±larÄ±n dÃ¼ÅŸmanlarÄ± 4s boyunca saniyede 1/2/3/4/5 hasarla zehirler.", // Attacks poison enemies for 4s, dealing 1/2/3/4/5 damage per second.
+  "shadowblade.ability.3": "GÃ¶lge Pelerini", // Shadow Cloak
+  "shadowblade.ability.3.description": "6s boyunca gÃ¶rÃ¼nmez olur ve daha hÄ±zlÄ± hareket edersin.", // Become invisible and move faster for 6s.
+
+  "dwarf_engineer.ability.0": "Ä°nÅŸa Et", // Build
+  "dwarf_engineer.ability.0.description": "3/6/9/12/15 ÅŸarjla inÅŸa aracÄ± kullanmanÄ± saÄŸlar.", // Use build tool with 3/6/9/12/15 charges.
+  "dwarf_engineer.ability.1": "Kazma", // Pickaxe
+  "dwarf_engineer.ability.1.description": "YÃ¼zeylere vurduÄŸunda %6/12/18/24/30 ÅŸansla el bombasÄ± bulursun.", // 6/12/18/24/30% chance to find a grenade when hitting surfaces.
+  "dwarf_engineer.ability.2": "TaÅŸ Cilt", // Stone Skin
+  "dwarf_engineer.ability.2.description": "ZÄ±rhÄ±nÄ± 20/40/60/80/100 artÄ±rÄ±r.", // Increase armor by 20/40/60/80/100.
+  "dwarf_engineer.ability.3": "AltÄ±na HÃ¼cum!", // Gold Rush!
+  "dwarf_engineer.ability.3.description": "10s boyunca 1000 HP ve hÄ±z artÄ±ÅŸÄ± kazanÄ±rsÄ±n.", // Gain 1000 HP and speed boost for 10s.
+
+  "hammerstorm.ability.0": "FÄ±rtÄ±na Oku",
+  "hammerstorm.ability.0.description": "Hedefin yakÄ±nÄ±ndaki dÃ¼ÅŸmanlarÄ± sersemletme ÅŸansÄ± %25.",
+  "hammerstorm.ability.1": "BÃ¼yÃ¼k Yarma",
+  "hammerstorm.ability.1.description": "YakÄ±ndaki dÃ¼ÅŸmanlara sÄ±Ã§rama hasarÄ± verme ÅŸansÄ± %25.",
+  "hammerstorm.ability.2": "SavaÅŸ Ã‡Ä±ÄŸlÄ±ÄŸÄ±",
+  "hammerstorm.ability.2.description": "Fazladan can ve hareket hÄ±zÄ± kazanÄ±lÄ±r.",
+  "hammerstorm.ability.3": "TanrÄ±larÄ±n GÃ¼cÃ¼",
+  "hammerstorm.ability.3.description": "6 saniyeliÄŸine hasarÄ± %25 artÄ±rÄ±r. Bekleme sÃ¼resi: 20 saniye.",
+
+  "sacred_warrior.ability.0": "Ä°Ã§sel CanlÄ±lÄ±k",
+  "sacred_warrior.ability.0.description": "Pasif olarak 1/2/3/4/5 HP yeniler. CanÄ±n %40â€™Ä±n altÄ±na dÃ¼ÅŸtÃ¼ÄŸÃ¼nde iyileÅŸme hÄ±zÄ± iki katÄ±na Ã§Ä±kar.",
+  "sacred_warrior.ability.1": "Yanan MÄ±zrak",
+  "sacred_warrior.ability.1.description": "Maksimum canÄ±nÄ±n %5â€™ini kaybedersin, ancak dÃ¼ÅŸmanlarÄ± ateÅŸe verirsin. 3 saniye boyunca 1/2/3/4/5 DPS verir. 3 kez Ã¼st Ã¼ste birikir.",
+  "sacred_warrior.ability.2": "Berserker KanÄ±",
+  "sacred_warrior.ability.2.description": "Eksik canÄ±nÄ±n her %7â€™si iÃ§in %1/2/3/4 hareket hÄ±zÄ± kazanÄ±rsÄ±n.",
+  "sacred_warrior.ability.3": "Hayat KÄ±rÄ±lmasÄ±",
+  "sacred_warrior.ability.3.description": "Kendine %20 maksimum can kaybettirerek hedefe %40 maksimum can kadar bÃ¼yÃ¼k hasar verirsin. Bekleme sÃ¼resi: 40 saniye.",
+
+  "silent_assassin.ability.0": "KÃ¼Ã§Ã¼lme",
+  "silent_assassin.ability.0.description": "Model boyutunu %15/20/25/30/35 kÃ¼Ã§Ã¼ltÃ¼r.",
+  "silent_assassin.ability.1": "Hafiflik",
+  "silent_assassin.ability.1.description": "Hareket hÄ±zÄ±nÄ± artÄ±rÄ±r ve yerÃ§ekimini azaltÄ±r.",
+  "silent_assassin.ability.2": "SuikastÃ§Ä± BÄ±Ã§aÄŸÄ±",
+  "silent_assassin.ability.2.description": "%40 ihtimalle ekstra bÄ±Ã§ak hasarÄ± verir.",
+  "silent_assassin.ability.3": "Hayalet YÃ¼rÃ¼yÃ¼ÅŸÃ¼",
+  "silent_assassin.ability.3.description": "3 saniyeliÄŸine tamamen gÃ¶rÃ¼nmez olursun. Bekleme sÃ¼resi: 15 saniye.",
+
+  //Stock class extras // SÄ±nÄ±f ekstralarÄ±
+  "mage.frozen": "{Blue}[DONDURULDU]{Default}", // [FROZEN]
+  "death_weaver.cripple": "{Green}SakatlandÄ± {Default}{0}",
+  "death_weaver.cripple.victim": "{Red}{0} tarafÄ±ndan sakatlandÄ± {Default}",
+  "death_weaver.spawn.rifle": "{Green}Bir taarruz tÃ¼feÄŸi ile doÄŸdun!",
+  "necromancer.cheatdeath": "{DarkRed}Ã–lÃ¼mden ÅŸimdilik kurtuldun...", // You cheated death for now...
+  "necromancer.lifedrain": "{0} {Red}sendan {1} HP Ã§aldÄ±!", // {0} drained {1} HP from you!
+  "paladin.revive": "{Green}Dirildin!", // You have been revived!
+  "paladin.revive.other": "{Green}{0}{Default}, {Gold}{1} tarafÄ±ndan diriltildi", // {0} was revived by {1}
+  "paladin.revive.none": "{Red}Diriltilecek takÄ±m arkadaÅŸÄ± yok!", // No teammate to revive!
+  "necromancer_classic.revive": "{Green}Ã–lÃ¼mden diriltildin!", // You have been resurrected!
+  "ranger.dash.cooldown": "{Red}Dash{Default} bekleme sÃ¼resinde!", // Dash is on cooldown!
+  "ranger.dash.ready": "{Green}Dash{Default} hazÄ±r!", // Dash is ready!
+  "ranger.trappedby": "{red}{0} tarafÄ±ndan tuzaklandÄ±n",
+  "ranger.trapowner": "{green}{0}'Ä± tuzaÄŸa dÃ¼ÅŸÃ¼rdÃ¼n{default}",
+  "rogue.backstab": "{Blue}[SÄ±rt SaldÄ±rÄ±sÄ±] {0} ekstra hasar", // [Backstab] {0} extra damage
+  "rogue.invsible": "[GÃ¶rÃ¼nmez]", // [Invisible]
+  "rogue.visible": "[GÃ¶rÃ¼nÃ¼r]", // [Visible]
+  "shapeshifter.disguise.failed": "{Red}KÄ±lÄ±k deÄŸiÅŸtirme baÅŸarÄ±sÄ±z{Default}, kopyalanacak dÃ¼ÅŸman yok", // Disguise failed, no enemy to copy
+  "shapeshifter.disguise": "{Blue}{0} olarak kÄ±lÄ±k deÄŸiÅŸtirdin{Default}", // Disguised as {0}
+  "shapeshifter.disguise.revealed": "{Red}KÄ±lÄ±k{Default} bozuldu!", // Disguise broken!
+  "shapeshifter.spotted": "[Farkedildi]", // [Spotted]
+  "shadowblade.evaded": "{Green}{LightYellow}{0}{Green} hasardan kaÃ§Ä±ndÄ±n!", // You evaded {0} damage!
+  "shadowblade.evaded.attacker": "{LightYellow}{0} {Green} saldÄ±rÄ±ndan kaÃ§Ä±ndÄ±!", // {0} evaded your attack!
+  "shadowblade.shadowstep": "{DarkBlue}GÃ¶lge AdÄ±m!", // Shadow Step!
+  "shadowblade.shadowstep.chance": "{DarkBlue}Shadowstep! {Grey}({0}% chance)",
+  "shadowblade.shadowstep.blocked": "{LightRed}Shadowstep failed - no safe space.",
+  "shadowblade.cloak.active": "{Green}Cloak of Shadows active ({0}% invisibility).",
+  "shadowblade.venomstrike": "{Green}{LightYellow}{0} {DarkRed}{1} {Green} hasar ile zehirlendi!", // {0} was poisoned for {1} damage!
+  "shadowblade.venomstrike.victim": "{Green}{DarkRed}{0} {Green} hasar ile zehirlendin!", // You were poisoned for {0} damage!
+  "dwarf_engineer.buildtool": "Ä°nÅŸa AracÄ±", // Build Tool
+  "dwarf_engineer.pickaxe": "Kazma", // Pickaxe
+  "dwarf_engineer.build.tooltip": "{Green}[Sol TÄ±k]{Default} Ä°nÅŸa Et {Grey}| {DarkBlue}[SaÄŸ TÄ±k]{Default} DeÄŸiÅŸtir {Grey}| {Red}[R]{Default} DÃ¶ndÃ¼r", // [Left Click] Build | [Right Click] Change | [R] Rotate
+  "sacred_warrior.burningspear": "{Green}Yanan {0}",
+  "sacred_warrior.burningspear.victim": "{Orange}{0}'dan yanÄ±yor{Default}",
+
+
+  //Items
+  "item.owned": "EÅŸyalar: {0}",
+  "item.amulet_of_the_cat.name": "Kedinin TÄ±lsÄ±mÄ±",
+  "item.amulet_of_the_cat.description": "Sessiz AdÄ±mlar",
+  "item.amulet_of_the_cat.activated": "Sessiz adÄ±mlar etkin.",
+  "item.amulet_of_vitality.name": "CanlÄ±lÄ±k TÄ±lsÄ±mÄ±",
+  "item.weapon_insurance.name": "Weapon Insurance",
+  "item.weapon_insurance.description": "Restore your current weapons next round if you die (consumed on use).",
+  "item.weapon_insurance.granted": "Weapon Insurance will restore this loadout after your next death.",
+  "item.weapon_insurance.applied": "Weapon Insurance restored your loadout.",
+  "item.blademail.name": "Blademail",
+  "item.blademail.description": "{0}% chance to return {1}% of incoming weapon damage.",
+  "item.amulet_of_vitality.description": "Maksimum HP'yi {0} artÄ±rÄ±r",
+  "item.boots_of_speed.name": "HÄ±z Ã‡izmeleri",
+  "item.boots_of_speed.description": "HÄ±zÄ± %{0} artÄ±rÄ±r",
+  "item.dagger_of_venom.name": "Zehir HanÃ§eri",
+  "item.dagger_of_venom.description": "VuruÅŸta dÃ¼ÅŸmanlarÄ± zehirler",
+  "item.gloves_of_cloud.name": "Bulut Eldivenleri",
+  "item.gloves_of_cloud.description": "Her {0} saniyede bir duman bombasÄ± al",
+  "item.gloves_of_cloud.grenade_name": "Duman bombasÄ±",
+  "item.gloves_of_dazzle.name": "ParÄ±ltÄ± Eldivenleri",
+  "item.gloves_of_dazzle.description": "Her {0} saniyede bir flaÅŸ bombasÄ± al",
+  "item.gloves_of_dazzle.grenade_name": "FlaÅŸ bombasÄ±",
+  "item.gloves_of_wrath.name": "Ã–fke Eldivenleri",
+  "item.gloves_of_wrath.description": "Her {0} saniyede bir el bombasÄ± al",
+  "item.gloves_of_wrath.grenade_name": "El bombasÄ±",
+  "item.mask_of_death.name": "Ã–lÃ¼m Maskesi",
+  "item.mask_of_death.description": "Silah hasarÄ±nÄ±n %{0}'ini iyileÅŸtirme ÅŸansÄ± %{1}",
+  "item.money_siphon_scepter.name": "Para Sifon AsasÄ±",
+  "item.money_siphon_scepter.description": "VuruÅŸta dÃ¼ÅŸmanÄ±n parasÄ±nÄ±n %{0}'sini Ã§alar",
+  "item.money_siphon_scepter.steal": "{Gold}+${0} {Red}{1}{Default}'dan Ã§alÄ±ndÄ±",
+  "item.money_siphon_scepter.stolen": "{Red}-{0} {Gold}{1}{Default} tarafÄ±ndan Ã§alÄ±ndÄ±",
+  "item.orb_of_frost.name": "Buz KÃ¼resi",
+  "item.orb_of_frost.description": "VuruÅŸta dÃ¼ÅŸmanÄ± yavaÅŸlatma ÅŸansÄ± %{0}",
+  "item.orb_of_frost.slowed": "{Red}{Green}{0}{Default} tarafÄ±ndan yavaÅŸlatÄ±ldÄ±n",
+  "item.ring_of_regeneration.name": "Yenilenme YÃ¼zÃ¼ÄŸÃ¼",
+  "item.ring_of_regeneration.description": "Her saniye {0} HP yeniler",
+  "item.sock_of_feathers.name": "TÃ¼y Ã‡orabÄ±",
+  "item.sock_of_feathers.description": "YerÃ§ekimini %{0} azaltÄ±r",
+  "item.talisman_of_evasion.name": "KaÃ§Ä±nma TÄ±lsÄ±mÄ±",
+  "item.talisman_of_evasion.description": "%{0} kaÃ§Ä±nma ÅŸansÄ±",
+  "item.tome_of_experience.name": "Deneyim KitabÄ±",
+  "item.tome_of_experience.description": "{0} XP kazan",
+  "item.tome_of_gambling.name": "Kumar KitabÄ±",
+  "item.tome_of_gambling.description": "{0}-{1} XP kazanma ÅŸansÄ±",
+
+  //SharedEffects
+  "effect.stun.stunnedby": "{red}{green}{0} tarafÄ±ndan sersemletildin", // Stunned by {0}
+  "effect.stun.stunowner": "{green}{0}{default} {1}'i sersemletti", // {0} stunned {1}
+  "effect.no.target": "{Red}{Green}{0} iÃ§in geÃ§erli hedef bulunamadÄ±"
+}
