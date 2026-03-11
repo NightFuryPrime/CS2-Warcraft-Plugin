@@ -130,7 +130,7 @@ Ultimate can be activated by binding it in the console, example
 
 **Install the Plugin**
    - Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html)
-   - Download the latest [Warcraft release](https://github.com/Wngui/CS2WarcraftMod/releases/latest)
+   - Compile project with Visual Studio 2022
    - Copy the `WarcraftPlugin` folder to `counterstrikesharp -> plugins`
 
 ## Configuration explanation
