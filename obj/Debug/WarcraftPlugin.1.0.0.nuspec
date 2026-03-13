@@ -27,8 +27,8 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\WarcraftPlugin.dll" target="lib\net8.0\WarcraftPlugin.dll" />
-    <file src="C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\Resources\nuget\Readme.md" target="\Readme.md" />
-    <file src="C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\Resources\nuget\wc-icon.png" target="\wc-icon.png" />
+    <file src="C:\Users\anubi\Downloads\DEV CLASS\CS2-Warcraft-Plugin-main\bin\Debug\net8.0\WarcraftPlugin.dll" target="lib\net8.0\WarcraftPlugin.dll" />
+    <file src="C:\Users\anubi\Downloads\DEV CLASS\CS2-Warcraft-Plugin-main\Resources\nuget\Readme.md" target="\Readme.md" />
+    <file src="C:\Users\anubi\Downloads\DEV CLASS\CS2-Warcraft-Plugin-main\Resources\nuget\wc-icon.png" target="\wc-icon.png" />
   </files>
 </package>

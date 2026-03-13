@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using System.Linq;
 using System.Collections.Generic;
 using System;
@@ -14,11 +14,12 @@ namespace WarcraftPlugin.lang
 {
     public static class LocalizerMiddleware
     {
-        internal static IStringLocalizer Load(IStringLocalizer localizer, string moduleDirectory)
+        /// <param name="languageCode">Optional language code (e.g. "en", "fr", "de"). If null, uses CurrentUICulture.</param>
+        internal static IStringLocalizer Load(IStringLocalizer localizer, string moduleDirectory, string languageCode = null)
         {
             var chatColors = GetChatColors();
 
-            List<LocalizedString> customHeroLocalizerStrings = LoadCustomHeroLocalizations(moduleDirectory, chatColors);
+            List<LocalizedString> customHeroLocalizerStrings = LoadCustomHeroLocalizations(moduleDirectory, chatColors, languageCode);
 
             // Process the localizer strings
             var localizedStrings = localizer.GetAllStrings()
@@ -29,9 +30,13 @@ namespace WarcraftPlugin.lang
             return new WarcraftLocalizer(localizedStrings);
         }
 
-        private static List<LocalizedString> LoadCustomHeroLocalizations(string moduleDirectory, Dictionary<string, string> chatColors)
+        private static List<LocalizedString> LoadCustomHeroLocalizations(string moduleDirectory, Dictionary<string, string> chatColors, string languageCode = null)
         {
-            var searchPattern = $"*.{CultureInfo.CurrentUICulture.TwoLetterISOLanguageName}*.json";
+            var culture = !string.IsNullOrWhiteSpace(languageCode)
+                ? CultureInfo.GetCultureInfo(languageCode.Trim())
+                : CultureInfo.CurrentUICulture;
+            var twoLetter = culture.TwoLetterISOLanguageName;
+            var searchPattern = $"*.{twoLetter}*.json";
             var fallbackSearchPattern = "*.en*.json";
 
             var customHeroLocalizations = Directory.EnumerateFiles(Path.Combine(moduleDirectory, "lang"), searchPattern);

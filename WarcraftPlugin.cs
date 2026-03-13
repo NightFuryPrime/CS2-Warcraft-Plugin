@@ -1,4 +1,4 @@
-﻿using CounterStrikeSharp.API;
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
@@ -33,6 +33,8 @@ namespace WarcraftPlugin
     public class Config : BasePluginConfig
     {
         [JsonPropertyName("ConfigVersion")] public override int Version { get; set; } = 10;
+        /// <summary>Language code for plugin UI (e.g. "en", "fr", "de", "ru", "tr", "da"). Restart or reload plugin to apply.</summary>
+        [JsonPropertyName("Language")] public string Language { get; set; } = "en";
         [JsonPropertyName("DeactivatedClasses")] public string[] DeactivatedClasses { get; set; } = [];
         [JsonPropertyName("ShowCommandAdverts")] public bool ShowCommandAdverts { get; set; } = true;
         [JsonPropertyName("DefaultClass")] public string DefaultClass { get; set; } = "ranger";
@@ -164,6 +166,20 @@ namespace WarcraftPlugin
 
         public override void Load(bool hotReload)
         {
+            if (!string.IsNullOrWhiteSpace(Config?.Language))
+            {
+                try
+                {
+                    var culture = System.Globalization.CultureInfo.GetCultureInfo(Config.Language.Trim());
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
+                    System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+                }
+                catch
+                {
+                    // Invalid language code, keep default culture
+                }
+            }
+
             base.Load(hotReload);
 
             if (!string.IsNullOrEmpty(Server.MapName) && !hotReload)
@@ -172,7 +188,7 @@ namespace WarcraftPlugin
                 Server.PrintToChatAll($" {ChatColors.Green}Warcraft {ChatColors.Red}loaded after map start, {ChatColors.Orange}reload the map {ChatColors.Red}to avoid errors.");
             }
 
-            Localizer = LocalizerMiddleware.Load(Localizer, ModuleDirectory);
+            Localizer = LocalizerMiddleware.Load(Localizer, ModuleDirectory, Config?.Language);
 
             MenuApi.ReloadConfig();
 
@@ -790,19 +806,35 @@ namespace WarcraftPlugin
             }
 
             var warcraftPlayer = client.GetWarcraftPlayer();
+            if (warcraftPlayer == null)
+            {
+                // Aucun profil Warcraft chargé pour ce joueur (ex. pas encore initialisé)
+                client.PrintToCenter(" " + Localizer["command.info.unavailable"]);
+                client.PlayLocalSound("sounds/common/talk.vsnd");
+                return;
+            }
+
+            var wcClass = warcraftPlayer.GetClass();
+            if (wcClass == null)
+            {
+                client.PrintToCenter(" " + Localizer["command.info.unavailable"]);
+                client.PlayLocalSound("sounds/common/talk.vsnd");
+                return;
+            }
+
             if (warcraftPlayer.GetAbilityLevel(3) < 1)
             {
                 client.PrintToCenter(" " + Localizer["no.ultimate"]);
                 client.PlayLocalSound("sounds/common/talk.vsnd");
             }
-            else if (!warcraftPlayer.GetClass().IsAbilityReady(3))
+            else if (!wcClass.IsAbilityReady(3))
             {
-                client.PrintToCenter(" " + Localizer["ultimate.countdown", Math.Ceiling(warcraftPlayer.GetClass().AbilityCooldownRemaining(3))]);
+                client.PrintToCenter(" " + Localizer["ultimate.countdown", Math.Ceiling(wcClass.AbilityCooldownRemaining(3))]);
                 client.PlayLocalSound("sounds/common/talk.vsnd");
             }
             else
             {
-                GetWcPlayer(client)?.GetClass()?.InvokeAbility(3);
+                wcClass.InvokeAbility(3);
             }
         }
 
