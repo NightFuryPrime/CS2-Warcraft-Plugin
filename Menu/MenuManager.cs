@@ -16,7 +16,8 @@ internal static class MenuManager
         WasdMenu wasdMenu = new(menu.Title, WarcraftPlugin.Instance)
         {
             MenuTime = 0,
-            ExitButton = true
+            ExitButton = true,
+            ItemsPerPage = menu.ResultsBeforePaging
         };
 
         foreach (MenuOption option in menu.Options)

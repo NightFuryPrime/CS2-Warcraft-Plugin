@@ -151,7 +151,9 @@ namespace WarcraftPlugin
             if (warcraftPlayer == null) return;
 
             var playerNameClean = player.GetRealPlayerName();
-            var playerNameWithPrefix = $"{warcraftPlayer.GetLevel()} [{warcraftPlayer.GetClass().LocalizedDisplayName}] {playerNameClean}";
+            var playerNameWithPrefix = warcraftPlayer.HideNamePrefix
+                ? playerNameClean
+                : $"{warcraftPlayer.GetLevel()} [{warcraftPlayer.GetClass().LocalizedDisplayName}] {playerNameClean}";
 
             player.PlayerName = playerNameWithPrefix;
             Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
@@ -290,6 +292,22 @@ namespace WarcraftPlugin
             ];
             foreach (var alias in helpAliases)
                 AddUniqueCommand(alias, "list all commands", CommandHelp);
+
+            List<string> adminAliases =
+            [
+                "wcadmin", "warcraftadmin",
+                ..Localizer["command.admin"].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ];
+            foreach (var alias in adminAliases)
+                AddUniqueCommand(alias, "warcraft admin menu", (player, _) => AdminMenu.Show(player));
+
+            List<string> settingsAliases =
+            [
+                "wcsettings", "wcsetting",
+                ..Localizer["command.settings"].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ];
+            foreach (var alias in settingsAliases)
+                AddUniqueCommand(alias, "warcraft settings", (player, _) => SettingsMenu.Show(GetWcPlayer(player)));
 
             List<string> cooldownAliases =
             [

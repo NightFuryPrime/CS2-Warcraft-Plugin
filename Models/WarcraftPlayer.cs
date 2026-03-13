@@ -1,8 +1,10 @@
-﻿using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core;
+using Microsoft.Extensions.Localization;
 using System.Collections.Generic;
 using WarcraftPlugin.Core;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Items;
+using WarcraftPlugin.lang;
 
 namespace WarcraftPlugin.Models
 {
@@ -16,6 +18,24 @@ namespace WarcraftPlugin.Models
         internal CCSPlayerController Player { get; init; }
 
         internal string DesiredClass { get; set; }
+        internal bool HideNamePrefix { get; set; } = false;
+        internal string PreferredLanguage { get; private set; } = null;
+        private WarcraftLocalizer _cachedLocalizer;
+
+        internal IStringLocalizer GetLocalizer()
+        {
+            if (string.IsNullOrEmpty(PreferredLanguage))
+                return WarcraftPlugin.Instance.Localizer;
+
+            return _cachedLocalizer ??= LocalizerMiddleware.CreateForLanguage(
+                WarcraftPlugin.Instance.ModuleDirectory, PreferredLanguage);
+        }
+
+        internal void SetLanguage(string languageCode)
+        {
+            PreferredLanguage = string.IsNullOrEmpty(languageCode) ? null : languageCode;
+            _cachedLocalizer = null;
+        }
 
         internal int currentXp;
         internal int currentLevel;

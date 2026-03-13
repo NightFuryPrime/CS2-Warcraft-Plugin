@@ -1,4 +1,4 @@
-﻿{
+{
   //Menu + Core //Menu + Core
   "menu.selection.left": "<font color='red' class='fontSize-s'>? </font>", // Left selection arrow
   "menu.selection.right": "<font color='red' class='fontSize-s'> ?</font>", // Right selection arrow
@@ -18,6 +18,8 @@
   "menu.skills.level": "Niveau", // Level
   "menu.skills.available": "Opgrader færdigheder ({0} tilgængelige)", // Upgrade skills ({0} available)
   "menu.skills.ultimate.level": "niveau {0}", // level {0}
+  "menu.skills.next.page": "Næste side ▶",
+  "menu.skills.prev.page": "◀ Forrige side",
   "menu.shop": "Genstandsbiks", // Item Shop
   "menu.shop.carry_limit": "Du kan ikke bære mere end {0} genstande.", // Limit placeholder
   "menu.shop.already_owned": "Du ejer allerede denne genstand.", // Du ejer allerede denne genstand.
@@ -58,6 +60,29 @@
   "command.shopmenu": "shopmenu", // shopmenu
   "command.help": "kommandoer", // commands
   "command.help.description": "{Green}Skriv {Gold}!class{Green} for at skifte klasse, {Gold}!skills{Green} for at opgradere færdigheder", // Type !class to change class, !skills to upgrade skills
+  "command.admin": "wcadmin, warcraftadmin",
+  "command.settings": "wcsettings, wcsetting",
+  "menu.admin": "Warcraft Admin",
+  "menu.admin.select.player": "Vælg en spiller",
+  "menu.admin.no.permission": "Ingen tilladelse.",
+  "menu.admin.reset.skills": "Nulstil færdigheder",
+  "menu.admin.reset.skills.desc": "Nulstiller færdighedspoint (niveau & XP bevares)",
+  "menu.admin.reset.skills.done": "Færdigheder nulstillet for {0}",
+  "menu.admin.factory.reset": "Fuld nulstilling",
+  "menu.admin.factory.reset.desc": "Nulstiller niveau, XP og alle færdigheder",
+  "menu.admin.factory.reset.done": "Fuld nulstilling for {0}",
+  "menu.admin.back": "Tilbage til listen",
+  "menu.settings": "Indstillinger",
+  "menu.settings.enabled": "TIL",
+  "menu.settings.disabled": "FRA",
+  "menu.settings.nameprefix": "Navnepræfiks",
+  "menu.settings.nameprefix.desc": "Vis/skjul klasse og niveau i dit navn",
+  "menu.settings.reset.skills": "Nulstil færdigheder",
+  "menu.settings.reset.skills.desc": "Omfordel alle dine færdighedspoint",
+  "menu.settings.reset.skills.done": "Dine færdighedspoint er blevet nulstillet.",
+  "menu.settings.language": "Sprog",
+  "menu.settings.language.desc": "Skift sprog for dine menuer",
+  "menu.settings.language.default": "Serverstandard",
   "command.info": "info,stats,wcinfo",
   "command.info.header": "{0}s Warcraft-profil",
   "command.info.race": "Race",

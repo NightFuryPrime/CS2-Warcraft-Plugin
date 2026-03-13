@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CS2MenuManager.API.Class;
@@ -17,6 +17,11 @@ namespace CS2MenuManager.API.Menu;
 /// <param name="plugin">The plugin associated with the menu.</param>
 public class WasdMenu(string title, BasePlugin plugin) : BaseMenu(title, plugin)
 {
+    /// <summary>
+    /// Gets or sets the number of items displayed per page for this menu instance.
+    /// </summary>
+    public int ItemsPerPage { get; set; } = 5;
+
     /// <summary>
     /// Displays the menu to the specified player for a specified duration.
     /// </summary>
@@ -51,7 +56,7 @@ public class WasdMenuInstance : BaseMenuInstance
     /// <summary>
     /// Gets the number of items displayed per page.
     /// </summary>
-    public override int NumPerPage => 5;
+    public override int NumPerPage => Menu is WasdMenu wasd ? wasd.ItemsPerPage : 5;
 
     /// <summary>
     /// Gets or sets the display string for the menu.

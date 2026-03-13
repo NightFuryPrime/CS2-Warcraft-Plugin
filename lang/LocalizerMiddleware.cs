@@ -14,9 +14,62 @@ namespace WarcraftPlugin.lang
 {
     public static class LocalizerMiddleware
     {
+        private static readonly ConcurrentDictionary<string, WarcraftLocalizer> _langCache = new(StringComparer.OrdinalIgnoreCase);
+        private static string _moduleDirectory;
+
+        internal static void InvalidateCache() => _langCache.Clear();
+
+        /// <summary>Creates a per-player localizer for the given language code, cached per language.</summary>
+        internal static WarcraftLocalizer CreateForLanguage(string moduleDirectory, string languageCode)
+        {
+            _moduleDirectory ??= moduleDirectory;
+            return _langCache.GetOrAdd(languageCode, code =>
+            {
+                var chatColors = GetChatColors();
+                var strings = new List<LocalizedString>();
+                var langDir = Path.Combine(moduleDirectory, "lang");
+                var targetFile = Path.Combine(langDir, $"{code}.json");
+                var fallbackFile = Path.Combine(langDir, "en.json");
+
+                if (File.Exists(targetFile))
+                    LoadJsonInto(strings, targetFile, chatColors);
+
+                // Add fallback keys from en.json for anything missing
+                if (File.Exists(fallbackFile))
+                    LoadJsonInto(strings, fallbackFile, chatColors);
+
+                var unique = strings
+                    .GroupBy(s => s.Name)
+                    .Select(g => g.First())
+                    .ToList();
+
+                return new WarcraftLocalizer(unique);
+            });
+        }
+
+        private static void LoadJsonInto(List<LocalizedString> strings, string file, Dictionary<string, string> chatColors)
+        {
+            try
+            {
+                var json = File.ReadAllText(file);
+                var opts = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+                using var doc = JsonDocument.Parse(json, opts);
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                        strings.Add(new LocalizedString(prop.Name.ToLower(), ReplaceChatColors(prop.Value.GetString() ?? string.Empty, chatColors)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Warcraft] Failed to load lang file {file}: {ex.Message}");
+            }
+        }
+
         /// <param name="languageCode">Optional language code (e.g. "en", "fr", "de"). If null, uses CurrentUICulture.</param>
         internal static IStringLocalizer Load(IStringLocalizer localizer, string moduleDirectory, string languageCode = null)
         {
+            _moduleDirectory = moduleDirectory;
             var chatColors = GetChatColors();
 
             List<LocalizedString> customHeroLocalizerStrings = LoadCustomHeroLocalizations(moduleDirectory, chatColors, languageCode);

@@ -13,7 +13,8 @@ internal static class ShopMenu
     internal static void Show(WarcraftPlayer wcPlayer)
     {
         var plugin = WarcraftPlugin.Instance;
-        var builder = MenuBuilder.Create($"<font color='lightgrey' class='{FontSizes.FontSizeM}'>" + ShopItem.Localizer["menu.shop"] + "</font>", 4);
+        var localizer = wcPlayer.GetLocalizer();
+        var builder = MenuBuilder.Create($"<font color='lightgrey' class='{FontSizes.FontSizeM}'>" + localizer["menu.shop"] + "</font>", 4);
 
         builder.AddOptions(
             Shop.Items.OrderBy(x => x.Price),
@@ -37,17 +38,17 @@ internal static class ShopMenu
                     if (maxItems < 1) maxItems = 1;
                     if (currentWcPlayer.Items.Count >= maxItems)
                     {
-                        player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
-                        player.PrintToChat($" {ShopItem.Localizer["menu.shop.carry_limit", maxItems]}");
-                        return;
-                    }
+                    player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
+                    player.PrintToChat($" {localizer["menu.shop.carry_limit", maxItems]}");
+                    return;
+                }
 
-                    if (currentWcPlayer.Items.Any(inv => inv.GetType() == itemInstance.GetType()))
-                    {
-                        player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
-                        player.PrintToChat($" {ShopItem.Localizer["menu.shop.already_owned"]}");
-                        return;
-                    }
+                if (currentWcPlayer.Items.Any(inv => inv.GetType() == itemInstance.GetType()))
+                {
+                    player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
+                    player.PrintToChat($" {localizer["menu.shop.already_owned"]}");
+                    return;
+                }
                 }
 
                 try
@@ -55,9 +56,9 @@ internal static class ShopMenu
                     var moneyServices = player.InGameMoneyServices;
                     if (moneyServices == null || moneyServices.Account < itemInstance.Price)
                     {
-                        player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
-                        player.PrintToChat($" {ShopItem.Localizer["menu.shop.not_enough_money"]}");
-                        return;
+                    player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
+                    player.PrintToChat($" {localizer["menu.shop.not_enough_money"]}");
+                    return;
                     }
 
                     moneyServices.Account -= itemInstance.Price;
@@ -85,13 +86,13 @@ internal static class ShopMenu
 
                 if (!applied)
                 {
-                    player.PrintToChat($" {ShopItem.Localizer["menu.shop.already_owned"]}");
+                    player.PrintToChat($" {localizer["menu.shop.already_owned"]}");
                     player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
                     return;
                 }
 
                 player.PlayLocalSound("sounds/buttons/button9.vsnd");
-                player.PrintToChat($" {ShopItem.Localizer["menu.shop.bought", itemInstance.LocalizedName]}");
+                player.PrintToChat($" {localizer["menu.shop.bought", itemInstance.LocalizedName]}");
             });
 
         MenuManager.OpenMainMenu(wcPlayer.Player, builder.Build());

@@ -1,4 +1,4 @@
-﻿using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API;
 using System.Drawing;
 using CounterStrikeSharp.API.Modules.Utils;
@@ -317,9 +317,21 @@ namespace WarcraftPlugin.Helpers
         /// <param name="pitch">The pitch of the sound.</param>
         /// <param name="volume">The volume of the sound.</param>
         /// <param name="delay">The delay before the sound is played.</param>
+        private static bool _emitSoundFuncBroken = false;
+
         public static void EmitSound(this CBaseEntity entity, string soundpath, int pitch = 1, float volume = 1, float delay = 0)
         {
-            Memory.CBaseEntity_EmitSoundParamsFunc?.Invoke(entity, soundpath, pitch, volume, delay);
+            if (_emitSoundFuncBroken || Memory.CBaseEntity_EmitSoundParamsFunc == null) return;
+
+            try
+            {
+                Memory.CBaseEntity_EmitSoundParamsFunc.Invoke(entity, soundpath, pitch, volume, delay);
+            }
+            catch (Exception ex) when (ex.Message.Contains("Invalid function pointer") || ex.InnerException?.Message.Contains("Invalid function pointer") == true)
+            {
+                _emitSoundFuncBroken = true;
+                Console.WriteLine("[Warcraft] EmitSound: invalid function pointer (game update?). Sound calls disabled until reload.");
+            }
         }
 
         /// <summary>

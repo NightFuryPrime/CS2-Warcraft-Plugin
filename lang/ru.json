@@ -18,6 +18,8 @@
   "menu.skills.level": "Уровень", // Level
   "menu.skills.available": "Улучшить навыки ({0} доступно)", // Upgrade skills ({0} available)
   "menu.skills.ultimate.level": "уровень {0}", // Level {0}
+  "menu.skills.next.page": "Следующая страница ▶",
+  "menu.skills.prev.page": "◀ Предыдущая страница",
   "menu.shop": "Магазин предметов", // Item Shop
   "menu.shop.carry_limit": "Вы не можете нести больше предметов.", // You cannot carry more items.
   "menu.shop.already_owned": "У вас уже есть этот предмет.", // You already own this item.
@@ -53,6 +55,29 @@
   "command.shopmenu": "магазин", // shopmenu
   "command.help": "команды", // commands
   "command.help.description": "{Green}Введите {Gold}!class{Green} для смены класса, {Gold}!skills{Green} для улучшения навыков", // Type !class to change class, !skills to upgrade skills
+  "command.admin": "wcadmin, warcraftadmin",
+  "command.settings": "wcsettings, wcsetting",
+  "menu.admin": "Warcraft Админ",
+  "menu.admin.select.player": "Выбрать игрока",
+  "menu.admin.no.permission": "Нет прав доступа.",
+  "menu.admin.reset.skills": "Сбросить навыки",
+  "menu.admin.reset.skills.desc": "Сбрасывает очки навыков (уровень и XP остаются)",
+  "menu.admin.reset.skills.done": "Навыки сброшены для {0}",
+  "menu.admin.factory.reset": "Полный сброс",
+  "menu.admin.factory.reset.desc": "Сбрасывает уровень, XP и все навыки",
+  "menu.admin.factory.reset.done": "Полный сброс для {0}",
+  "menu.admin.back": "Вернуться к списку",
+  "menu.settings": "Настройки",
+  "menu.settings.enabled": "ВКЛ",
+  "menu.settings.disabled": "ВЫКЛ",
+  "menu.settings.nameprefix": "Префикс имени",
+  "menu.settings.nameprefix.desc": "Показать/скрыть класс и уровень в имени",
+  "menu.settings.reset.skills": "Сбросить навыки",
+  "menu.settings.reset.skills.desc": "Перераспределить все очки навыков",
+  "menu.settings.reset.skills.done": "Ваши очки навыков сброшены.",
+  "menu.settings.language": "Язык",
+  "menu.settings.language.desc": "Изменить язык меню",
+  "menu.settings.language.default": "Язык сервера",
 
   //Adverts //Реклама
   "advert.0": "{Green}Хотите новый класс? Введите {Gold}!class{Green} для смены", // Want a new class? Type !class to change
