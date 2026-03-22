@@ -14,6 +14,7 @@ using WarcraftPlugin.Models;
 using CounterStrikeSharp.API.Modules.UserMessages;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using WarcraftPlugin.Diagnostics;
 
 namespace WarcraftPlugin.Helpers
 {
@@ -59,6 +60,7 @@ namespace WarcraftPlugin.Helpers
             }
 
             Console.WriteLine("[Warcraft] Warning: unable to resolve TakeDamage virtual function; scripted damage effects disabled.");
+            PersistentLogger.Warn(nameof(Warcraft), "Unable to resolve TakeDamage virtual function; scripted damage effects disabled.");
             return (_, _) => { };
         }
 
@@ -140,6 +142,7 @@ namespace WarcraftPlugin.Helpers
             catch (Exception ex)
             {
                 Console.WriteLine($"[Warcraft] Warning: failed to resolve EyeAngles property ({ex.Message}). Falling back to AbsRotation.");
+                PersistentLogger.Warn(nameof(Warcraft), $"Failed to resolve EyeAngles property ({ex.Message}). Falling back to AbsRotation.");
             }
 
             return DefaultAngle;
@@ -711,6 +714,8 @@ namespace WarcraftPlugin.Helpers
             KillFeedIcon? killFeedIcon = null, CCSPlayerController inflictor = null, bool penetrationKill = false,
             string abilityName = null, DamageTypes damageType = DamageTypes.Generic)
         {
+            PersistentLogger.Breadcrumb(nameof(TakeDamage), $"Entering scripted damage path for victim='{victim?.PlayerName}' attacker='{attacker?.PlayerName}' damage={damage}.", throttleMs: 250);
+
             if (victim == null || !victim.IsValid)
                 return;
 
@@ -763,6 +768,7 @@ namespace WarcraftPlugin.Helpers
                         victim.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.health.victim", damage, abilityName]}");
                 }
 
+                PersistentLogger.Breadcrumb(nameof(TakeDamage), "Invoking native TakeDamage function.", throttleMs: 250);
                 TakeDamageInvoker?.Invoke(victimPawn, damageInfo);
             }
             finally

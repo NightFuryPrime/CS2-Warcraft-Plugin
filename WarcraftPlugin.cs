@@ -76,7 +76,7 @@ namespace WarcraftPlugin
         public static WarcraftPlugin Instance => _instance;
 
         public override string ModuleName => "Warcraft";
-        public override string ModuleVersion => "4.0.5";
+        public override string ModuleVersion => "4.0.6";
 
         public const int MaxLevel = 16;
         public const int MaxSkillLevel = 5;
@@ -165,6 +165,8 @@ namespace WarcraftPlugin
         public override void Load(bool hotReload)
         {
             base.Load(hotReload);
+            PersistentLogger.Initialize(ModuleDirectory);
+            PersistentLogger.Info(nameof(WarcraftPlugin), $"Loading {ModuleName} v{ModuleVersion} (hotReload={hotReload}).", mirrorConsole: true);
 
             if (!string.IsNullOrEmpty(Server.MapName) && !hotReload)
             {
@@ -348,6 +350,7 @@ namespace WarcraftPlugin
             }
             catch (Exception ex)
             {
+                PersistentLogger.Error(nameof(ShowClassMenu), "Failed to load class information for the class menu.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error in ShowClassMenu: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
                 player.PrintToChat($" {ChatColors.Red}Error loading class menu. Please try again later.");
@@ -573,6 +576,7 @@ namespace WarcraftPlugin
             }
             catch (Exception ex)
             {
+                PersistentLogger.Error(nameof(SaveClientsSafeAsync), "Autosave failed.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error while saving clients: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }
@@ -622,6 +626,7 @@ namespace WarcraftPlugin
             }
             catch (Exception ex)
             {
+                PersistentLogger.Error(nameof(OnClientPutInServerHandler), $"Player initialization failed for slot {slot}.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error in OnClientPutInServerHandler: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }
@@ -739,6 +744,7 @@ namespace WarcraftPlugin
             }
             catch (Exception ex)
             {
+                PersistentLogger.Error(nameof(ChangeClass), $"ChangeClass failed for '{player?.PlayerName}' -> '{classInternalName}'.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error in ChangeClass: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
                 Server.NextFrame(() => player.PrintToChat($" {ChatColors.Red}An error occurred while changing class."));
@@ -750,6 +756,7 @@ namespace WarcraftPlugin
                 }
                 catch (Exception revertEx)
                 {
+                    PersistentLogger.Error(nameof(ChangeClass), $"Failed to revert class change for '{player?.PlayerName}' back to '{oldClassName}'.", revertEx);
                     Console.WriteLine($"[WarcraftPlugin] Failed to revert class change: {revertEx.Message}");
                     Console.WriteLine(revertEx.StackTrace);
                 }
@@ -767,6 +774,7 @@ namespace WarcraftPlugin
         {
             if (Config?.EnableDebugLogs != true) return;
             var line = $"[Warcraft][DEBUG] {message}";
+            PersistentLogger.Info("Warcraft.Debug", message, mirrorConsole: false);
             Server.PrintToConsole(line);
             Console.WriteLine(line);
         }
@@ -814,6 +822,7 @@ namespace WarcraftPlugin
 
         public override void Unload(bool hotReload)
         {
+            PersistentLogger.Info(nameof(WarcraftPlugin), $"Unloading {ModuleName} v{ModuleVersion} (hotReload={hotReload}).", mirrorConsole: true);
             foreach (var player in Utilities.GetPlayers())
             {
                 //Avoid getting stuck in old menu
@@ -826,6 +835,7 @@ namespace WarcraftPlugin
             _database?.SaveClients().GetAwaiter().GetResult();
             _database?.Dispose();
             VolumeFix.Unload();
+            PersistentLogger.Shutdown();
             base.Unload(hotReload);
         }
     }

@@ -6,11 +6,14 @@ using System.Runtime.InteropServices;
 using System;
 using CounterStrikeSharp.API.Modules.Utils;
 using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
+using WarcraftPlugin.Diagnostics;
 
 namespace WarcraftPlugin.Helpers
 {
     public static class RayTracer
     {
+        private static bool _missingSignatureLogged;
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private unsafe delegate bool TraceShapeDelegate(
             nint GameTraceManager,
@@ -52,46 +55,59 @@ namespace WarcraftPlugin.Helpers
 
         public static unsafe Vector Trace(Vector _origin, Vector _endOrigin, bool drawResult = false)
         {
-            var _gameTraceManagerAddress = Address.GetAbsoluteAddress(GameTraceManager, 3, 7);
-
-            var traceShape = Marshal.GetDelegateForFunctionPointer<TraceShapeDelegate>(TraceFunc);
-
-            // Console.WriteLine($"==== TraceFunc {TraceFunc} | GameTraceManager {GameTraceManager} | _gameTraceManagerAddress {_gameTraceManagerAddress} | _traceShape {_traceShape}");
-
-            var _trace = stackalloc GameTrace[1];
-
-            ulong mask = 0x1C1003;
-            // var mask = 0xFFFFFFFF;
-            var result = traceShape(*(nint*)_gameTraceManagerAddress, _origin.Handle, _endOrigin.Handle, 0, mask, 4, _trace);
-
-            //Console.WriteLine($"RESULT {result}");
-
-            //Console.WriteLine($"StartPos: {_trace->StartPos}");
-            //Console.WriteLine($"EndPos: {_trace->EndPos}");
-            //Console.WriteLine($"HitEntity: {(uint)_trace->HitEntity}");
-            //Console.WriteLine($"Fraction: {_trace->Fraction}");
-            //Console.WriteLine($"AllSolid: {_trace->AllSolid}");
-            //Console.WriteLine($"ViewAngles: {_viewangles}");
-
-            var endPos = new Vector(_trace->EndPos.X, _trace->EndPos.Y, _trace->EndPos.Z);
-
-            if (drawResult)
+            if (TraceFunc == nint.Zero || GameTraceManager == nint.Zero)
             {
-                Color color = Color.FromName("Green");
-                if (result)
+                if (!_missingSignatureLogged)
                 {
-                    color = Color.FromName("Red");
+                    PersistentLogger.Error(nameof(RayTracer), $"Missing trace signature(s). TraceFunc={TraceFunc}, GameTraceManager={GameTraceManager}");
+                    _missingSignatureLogged = true;
+                }
+                return null;
+            }
+
+            try
+            {
+                PersistentLogger.Breadcrumb(nameof(RayTracer), "Entering native trace.", throttleMs: 250);
+
+                var _gameTraceManagerAddress = Address.GetAbsoluteAddress(GameTraceManager, 3, 7);
+                if (_gameTraceManagerAddress == nint.Zero)
+                {
+                    PersistentLogger.Error(nameof(RayTracer), "Resolved GameTraceManager address was zero.");
+                    return null;
                 }
 
-                Warcraft.DrawLaserBetween(_origin, endPos, color, 5);
-            }
+                var traceShape = Marshal.GetDelegateForFunctionPointer<TraceShapeDelegate>(TraceFunc);
 
-            if (result)
+                var _trace = stackalloc GameTrace[1];
+
+                ulong mask = 0x1C1003;
+                var result = traceShape(*(nint*)_gameTraceManagerAddress, _origin.Handle, _endOrigin.Handle, 0, mask, 4, _trace);
+
+                var endPos = new Vector(_trace->EndPos.X, _trace->EndPos.Y, _trace->EndPos.Z);
+
+                if (drawResult)
+                {
+                    Color color = Color.FromName("Green");
+                    if (result)
+                    {
+                        color = Color.FromName("Red");
+                    }
+
+                    Warcraft.DrawLaserBetween(_origin, endPos, color, 5);
+                }
+
+                if (result)
+                {
+                    return endPos;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
             {
-                return endPos;
+                PersistentLogger.Error(nameof(RayTracer), "Managed failure while preparing native trace.", ex);
+                return null;
             }
-
-            return null;
         }
     }
 

@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
+using WarcraftPlugin.Diagnostics;
 using WarcraftPlugin.Events.ExtendedEvents;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Menu.WarcraftMenu;
@@ -383,6 +384,7 @@ namespace WarcraftPlugin.Events
             }
             catch (Exception ex)
             {
+                PersistentLogger.Error(nameof(HandleSpawnClassChangeAsync), $"Spawn-time class change failed for '{player?.PlayerName}' -> '{desiredClass}'.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error while handling spawn class change: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }

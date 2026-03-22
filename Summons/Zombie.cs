@@ -3,6 +3,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using System;
 using System.Drawing;
+using WarcraftPlugin.Diagnostics;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
 
@@ -29,16 +30,29 @@ namespace WarcraftPlugin.Summons
         {
             Owner = owner;
             Entity = Utilities.CreateEntityByName<CChicken>("chicken");
+            if (Entity == null || !Entity.IsValid)
+            {
+                PersistentLogger.Error(nameof(Zombie), "Failed to create zombie chicken entity.");
+                return;
+            }
 
             Entity.Teleport(Owner.CalculatePositionInFront(new Vector(RandomProvider.Next(200), RandomProvider.Next(200), 5)), new QAngle(), new Vector());
             Entity.DispatchSpawn();
             Entity.SetColor(Color.GreenYellow);
-            Entity.CBodyComponent.SceneNode.GetSkeletonInstance().Scale = 2f;
+            PersistentLogger.Breadcrumb(nameof(Zombie), "Applying zombie entity visual setup.", throttleMs: 0);
+            var skeleton = Entity.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+            if (skeleton != null)
+            {
+                skeleton.Scale = 2f;
+            }
             Entity.Health = _maxHealth;
 
             Warcraft.SpawnParticle(Entity.AbsOrigin.Clone().Add(z: 5), "particles/entity/env_explosion/test_particle_composite_dark_outline_smoke.vpcf");
 
-            Entity.OwnerEntity.Raw = Owner.PlayerPawn.Raw;
+            if (Owner.PlayerPawn != null && Owner.PlayerPawn.IsValid)
+            {
+                Entity.OwnerEntity.Raw = Owner.PlayerPawn.Raw;
+            }
             FollowLeader();
         }
 
@@ -109,11 +123,14 @@ namespace WarcraftPlugin.Summons
         private void AttackLeap()
         {
             if (Target == null) return;
+            var targetPawn = Target.PlayerPawn?.Value;
+            if (targetPawn == null || !targetPawn.IsValid) return;
+
             LastLeapTick = Server.TickedTime;
             Attack();
 
             //Leap logic
-            Vector velocity = Warcraft.CalculateTravelVelocity(Entity.AbsOrigin, Target.PlayerPawn.Value.AbsOrigin, 1);
+            Vector velocity = Warcraft.CalculateTravelVelocity(Entity.AbsOrigin, targetPawn.AbsOrigin, 1);
 
             Entity.AbsVelocity.Z = 400;
             Entity.AbsVelocity.X = Math.Clamp(velocity.X, -1000, 1000);
@@ -123,7 +140,10 @@ namespace WarcraftPlugin.Summons
         private void Attack()
         {
             if (Target == null) return;
-            var playerCollison = Target.PlayerPawn.Value.Collision.ToBox(Target.PlayerPawn.Value.AbsOrigin.Clone().Add(z: -60));
+            var targetPawn = Target.PlayerPawn?.Value;
+            if (targetPawn == null || !targetPawn.IsValid) return;
+
+            var playerCollison = targetPawn.Collision.ToBox(targetPawn.AbsOrigin.Clone().Add(z: -60));
 
             //Check if zombie is inside targets collision box
             if (playerCollison.Contains(Entity.AbsOrigin))
@@ -147,6 +167,8 @@ namespace WarcraftPlugin.Summons
         internal void SetEnemy(CCSPlayerController enemy)
         {
             if (!enemy.IsAlive()) return;
+            var enemyPawn = enemy.PlayerPawn?.Value;
+            if (enemyPawn == null || !enemyPawn.IsValid) return;
 
             if (Target != null && Target.PawnIsAlive)
             {
@@ -157,14 +179,21 @@ namespace WarcraftPlugin.Summons
             IsFollowingLeader = false;
             InterestScore = _interestMax;
             Target = enemy;
-            Entity.Leader.Raw = enemy.PlayerPawn.Raw;
+            if (enemy.PlayerPawn != null && enemy.PlayerPawn.IsValid)
+            {
+                Entity.Leader.Raw = enemy.PlayerPawn.Raw;
+            }
         }
 
         private void FollowLeader()
         {
             IsFollowingLeader = true;
             Target = null;
-            Entity.Leader.Raw = Owner.PlayerPawn.Raw;
+            var ownerPawn = Owner.PlayerPawn?.Value;
+            if (ownerPawn != null && ownerPawn.IsValid && Owner.PlayerPawn != null && Owner.PlayerPawn.IsValid)
+            {
+                Entity.Leader.Raw = Owner.PlayerPawn.Raw;
+            }
         }
 
         public void Dispose()

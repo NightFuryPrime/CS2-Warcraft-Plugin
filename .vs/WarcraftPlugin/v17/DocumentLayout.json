@@ -54,8 +54,7 @@
               "RelativeToolTip": "Classes\\Ranger.cs",
               "ViewState": "AgIAAFAAAAAAAAAAAAAcwFAAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-21T11:20:54.3Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-21T11:20:54.3Z"
             },
             {
               "$type": "Document",
@@ -67,8 +66,7 @@
               "RelativeToolTip": "Menu\\MenuOption.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-20T11:23:39.513Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-20T11:23:39.513Z"
             },
             {
               "$type": "Document",
@@ -80,8 +78,7 @@
               "RelativeToolTip": "Menu\\MenuBuilder.cs",
               "ViewState": "AgIAABsAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-20T11:23:33.358Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-20T11:23:33.358Z"
             },
             {
               "$type": "Document",
@@ -91,7 +88,7 @@
               "RelativeDocumentMoniker": "WarcraftPlugin.cs",
               "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.cs",
               "RelativeToolTip": "WarcraftPlugin.cs",
-              "ViewState": "AgIAAEUAAAAAAAAAAADwv7QAAAAjAAAAAAAAAA==",
+              "ViewState": "AgIAAEUAAAAAAAAAAADwv7QAAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-19T08:11:08.906Z",
               "EditorCaption": ""
@@ -106,8 +103,7 @@
               "RelativeToolTip": "Menu\\WarcraftMenu\\ClassMenu.cs",
               "ViewState": "AgIAAGEAAAAAAAAAAAAmwIAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-19T08:01:26.831Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T08:01:26.831Z"
             },
             {
               "$type": "Document",
@@ -119,8 +115,7 @@
               "RelativeToolTip": "Core\\Database.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAIBZwD4AAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-19T00:53:31.266Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T00:53:31.266Z"
             },
             {
               "$type": "Document",
@@ -132,8 +127,7 @@
               "RelativeToolTip": "Classes\\DeathWeaver.cs",
               "ViewState": "AgIAABcAAAAAAAAAAAAwwDAAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-12T11:57:29.863Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-12T11:57:29.863Z"
             },
             {
               "$type": "Document",
@@ -144,8 +138,7 @@
               "ToolTip": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj",
               "RelativeToolTip": "WarcraftPlugin.csproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-11-12T11:49:25.621Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-12T11:49:25.621Z"
             }
           ]
         }

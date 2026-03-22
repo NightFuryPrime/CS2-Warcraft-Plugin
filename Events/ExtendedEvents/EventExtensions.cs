@@ -18,17 +18,19 @@ namespace WarcraftPlugin.Events.ExtendedEvents
         {
             var victim = @event.Userid;
             var attacker = @event.Attacker;
-            if (victim.IsAlive())
+            var victimPawn = victim?.PlayerPawn?.Value;
+            if (victim != null && victim.IsAlive() && victimPawn != null && victimPawn.IsValid)
             {
-                victim.PlayerPawn.Value.Health -= damageHealth;
-                victim.PlayerPawn.Value.ArmorValue -= damageArmor;
+                var projectedHealth = victimPawn.Health - damageHealth;
+                victimPawn.Health = Math.Max(0, projectedHealth);
+                victimPawn.ArmorValue = Math.Max(0, victimPawn.ArmorValue - damageArmor);
                 @event.DmgHealth += damageHealth;
                 @event.DmgArmor += damageArmor;
 
                 var attackerClass = attacker?.GetWarcraftPlayer()?.GetClass();
                 if (killFeedIcon != null)
                 {
-                    var isLethalDamage = (victim.PlayerPawn.Value.Health - damageHealth) <= 0;
+                    var isLethalDamage = projectedHealth <= 0;
                     attackerClass?.SetKillFeedIcon(isLethalDamage ? killFeedIcon : null);
                 }
 
@@ -57,12 +59,13 @@ namespace WarcraftPlugin.Events.ExtendedEvents
         public static void IgnoreDamage(this EventPlayerHurt @event, int? healthDamageToIgnore = null, int? armorDamageToIgnore = null)
         {
             var victim = @event.Userid;
-            if (victim.IsAlive())
+            var victimPawn = victim?.PlayerPawn?.Value;
+            if (victim != null && victim.IsAlive() && victimPawn != null && victimPawn.IsValid)
             {
                 int ignoredHealthDamage = Math.Clamp(healthDamageToIgnore ?? @event.DmgHealth, 0, @event.DmgHealth);
                 int ignoredArmorDamage = Math.Clamp(armorDamageToIgnore ?? @event.DmgArmor, 0, @event.DmgArmor);
-                victim.PlayerPawn.Value.Health += ignoredHealthDamage;
-                victim.PlayerPawn.Value.ArmorValue += ignoredArmorDamage;
+                victimPawn.Health += ignoredHealthDamage;
+                victimPawn.ArmorValue += ignoredArmorDamage;
                 @event.DmgHealth -= ignoredHealthDamage;
                 @event.DmgArmor -= ignoredArmorDamage;
             }
