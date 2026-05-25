@@ -8,7 +8,7 @@
     <RootNamespace>WarcraftPlugin</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>Warcraft CounterstrikeSharp Plugin</Title>
-    <Version>4.1.0</Version>
+    <Version>4.1.1</Version>
     <Authors>WnGui</Authors>
     <Description>An open-source Warcraft mod for CS2 featuring a fully-fledged RPG system</Description>
     <RepositoryUrl>https://github.com/Wngui/CS2WarcraftMod</RepositoryUrl>

@@ -15,6 +15,7 @@ namespace WarcraftPlugin.Models
         internal CCSPlayerController Player { get; init; }
 
         internal string DesiredClass { get; set; }
+        internal bool DesiredClassReadyForNextSpawn { get; private set; }
 
         internal int currentXp;
         internal int currentLevel;
@@ -85,6 +86,31 @@ namespace WarcraftPlugin.Models
         public WarcraftClass GetClass()
         {
             return _class;
+        }
+
+        internal void QueueClassChange(string classInternalName)
+        {
+            DesiredClass = classInternalName;
+            DesiredClassReadyForNextSpawn = false;
+        }
+
+        internal void MarkQueuedClassChangeReady()
+        {
+            if (!string.IsNullOrWhiteSpace(DesiredClass))
+                DesiredClassReadyForNextSpawn = true;
+        }
+
+        internal void ClearQueuedClassChange()
+        {
+            DesiredClass = null;
+            DesiredClassReadyForNextSpawn = false;
+        }
+
+        internal bool ShouldApplyQueuedClassChange(string currentClassName)
+        {
+            return DesiredClassReadyForNextSpawn &&
+                   !string.IsNullOrWhiteSpace(DesiredClass) &&
+                   !DesiredClass.Equals(currentClassName, System.StringComparison.OrdinalIgnoreCase);
         }
 
         public void GrantAbilityLevel(int abilityIndex)

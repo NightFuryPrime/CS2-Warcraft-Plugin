@@ -219,7 +219,9 @@ namespace WarcraftPlugin.Events
             foreach (var p in PlayerCache.GetPlayers())
             {
                 WarcraftPlugin.Instance.EffectManager.DestroyEffects(p, EffectDestroyFlags.OnRoundEnd);
-                p.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, HookMode.Pre);
+                var wcPlayer = p.GetWarcraftPlayer();
+                wcPlayer?.MarkQueuedClassChangeReady();
+                wcPlayer?.GetClass()?.InvokeEvent(@event, HookMode.Pre);
             }
 
             var winnerProp = @event.GetType().GetProperty("Winner");
@@ -338,7 +340,7 @@ namespace WarcraftPlugin.Events
             if (warcraftPlayer != null)
             {
                 var warcraftClass = warcraftPlayer.GetClass();
-                if (warcraftPlayer.DesiredClass != null && warcraftPlayer.DesiredClass != warcraftClass?.InternalName)
+                if (warcraftPlayer.ShouldApplyQueuedClassChange(warcraftClass?.InternalName))
                 {
                     WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnChangingRace);
                     WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnSpawn);
@@ -374,6 +376,8 @@ namespace WarcraftPlugin.Events
             if (player == null || string.IsNullOrWhiteSpace(desiredClass))
                 return;
 
+            var playerLabel = player.IsValid ? player.GetRealPlayerName() : "unknown";
+
             try
             {
                 await WarcraftPlugin.Instance.ChangeClass(player, desiredClass);
@@ -407,7 +411,7 @@ namespace WarcraftPlugin.Events
             }
             catch (Exception ex)
             {
-                PersistentLogger.Error(nameof(HandleSpawnClassChangeAsync), $"Spawn-time class change failed for '{player?.PlayerName}' -> '{desiredClass}'.", ex);
+                PersistentLogger.Error(nameof(HandleSpawnClassChangeAsync), $"Spawn-time class change failed for '{playerLabel}' -> '{desiredClass}'.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error while handling spawn class change: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }
@@ -454,16 +458,6 @@ namespace WarcraftPlugin.Events
             }
 
             WeaponInsuranceService.HandlePlayerDeath(victim);
-
-            var victimWarcraft = victim.GetWarcraftPlayer();
-            if (victimWarcraft?.DesiredClass != null && victimWarcraft.DesiredClass != victimWarcraft.className)
-            {
-                WarcraftPlugin.Instance.EffectManager.DestroyEffects(victim, EffectDestroyFlags.OnChangingRace);
-                _plugin.FireAndForget(
-                    WarcraftPlugin.Instance.ChangeClass(victim, victimWarcraft.DesiredClass),
-                    $"death-class-change:{victim.PlayerName}->{victimWarcraft.DesiredClass}");
-                // We don't need to wait for this on death usually.
-            }
 
             return HookResult.Continue;
         }

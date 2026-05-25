@@ -77,8 +77,24 @@ namespace WarcraftPlugin.Core
             if (player == null || !player.IsValid || player.IsBot)
                 return null;
 
-            var steamId = (long)player.SteamID;
-            var playerName = player.GetRealPlayerName();
+            return await LoadPlayerFromDatabase(
+                player,
+                xpSystem,
+                (long)player.SteamID,
+                player.GetRealPlayerName(),
+                notifyDisabledClass: true);
+        }
+
+        internal async Task<WarcraftPlayer> LoadPlayerFromDatabase(
+            CCSPlayerController player,
+            XpSystem xpSystem,
+            long steamId,
+            string playerName,
+            bool notifyDisabledClass = false)
+        {
+            if (player == null || steamId <= 0)
+                return null;
+
             var defaultClass = WarcraftPlugin.Instance.classManager.GetDefaultClass();
             var defaultRace = defaultClass.InternalName;
             var initialAmountToLevel = xpSystem.GetXpForLevel(0);
@@ -99,9 +115,13 @@ namespace WarcraftPlugin.Core
             if (!WarcraftPlugin.Instance.classManager.GetAllClasses().Any(x => x.InternalName == currentRace))
             {
                 currentRace = defaultRace;
-                if (player.IsValid)
+                if (notifyDisabledClass)
                 {
-                    player.PrintToChat(" " + WarcraftPlugin.Instance.Localizer["class.disabled", defaultClass.LocalizedDisplayName]);
+                    CounterStrikeSharp.API.Server.NextFrame(() =>
+                    {
+                        if (player.IsValid)
+                            player.PrintToChat(" " + WarcraftPlugin.Instance.Localizer["class.disabled", defaultClass.LocalizedDisplayName]);
+                    });
                 }
 
                 await SaveCurrentClassAsync(steamId, playerName, currentRace, initialAmountToLevel);
@@ -178,9 +198,17 @@ namespace WarcraftPlugin.Core
             if (player == null || !player.IsValid || player.IsBot || string.IsNullOrWhiteSpace(className))
                 return Task.CompletedTask;
 
+            return SaveCurrentClass((long)player.SteamID, player.GetRealPlayerName(), className);
+        }
+
+        internal Task SaveCurrentClass(long steamId, string playerName, string className)
+        {
+            if (steamId <= 0 || string.IsNullOrWhiteSpace(className))
+                return Task.CompletedTask;
+
             return SaveCurrentClassAsync(
-                steamId: (long)player.SteamID,
-                playerName: player.GetRealPlayerName(),
+                steamId: steamId,
+                playerName: playerName ?? string.Empty,
                 className: className,
                 initialAmountToLevel: GetInitialAmountToLevel());
         }

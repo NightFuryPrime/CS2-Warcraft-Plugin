@@ -3603,7 +3603,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "4.1.0",
+    "version": "4.1.1",
     "restore": {
       "projectUniqueName": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj",
       "projectName": "WarcraftPlugin",

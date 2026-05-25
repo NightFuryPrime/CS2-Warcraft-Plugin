@@ -101,25 +101,15 @@ namespace WarcraftPlugin.Menu.WarcraftMenu
                         if (!player.IsValid)
                             return;
 
-                        if (!player.PawnIsAlive)
+                        var innerPlayer = player.GetWarcraftPlayer();
+                        if (innerPlayer == null)
                         {
-                            plugin.FireAndForget(
-                                plugin.ChangeClass(player, classInternalName),
-                                $"class-menu-change:{player.PlayerName}->{classInternalName}");
-                        }
-                        else
-                        {
-                            var innerPlayer = player.GetWarcraftPlayer();
-                            if (innerPlayer == null)
-                            {
-                                player.PrintToChat($" {ChatColors.Red}Error: Player data not loaded.");
-                                return;
-                            }
-
-                            innerPlayer.DesiredClass = classInternalName;
-                            player.PrintToChat($" {plugin.Localizer["class.pending.change", warClassInformation.DisplayName]}");
+                            player.PrintToChat($" {ChatColors.Red}Error: Player data not loaded.");
+                            return;
                         }
 
+                        innerPlayer.QueueClassChange(classInternalName);
+                        player.PrintToChat($" {plugin.Localizer["class.pending.change", warClassInformation.DisplayName]}");
                     }
                     else
                     {

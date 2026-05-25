@@ -77,7 +77,7 @@ namespace WarcraftPlugin
         public static WarcraftPlugin Instance => _instance;
 
         public override string ModuleName => "Warcraft";
-        public override string ModuleVersion => "4.1.0";
+        public override string ModuleVersion => "4.1.1";
 
         public const int MaxLevel = 16;
         public const int MaxSkillLevel = 5;
@@ -681,13 +681,14 @@ namespace WarcraftPlugin
             if (player == null || !player.IsValid || player.IsBot)
                 return;
 
+            var playerLabel = player.GetRealPlayerName();
             try
             {
                 await _database.SavePlayerToDatabase(player);
             }
             catch (Exception ex)
             {
-                PersistentLogger.Error(nameof(FlushPlayerProgressBarrierAsync), $"Barrier flush failed for '{player.PlayerName}' ({reason}).", ex);
+                PersistentLogger.Error(nameof(FlushPlayerProgressBarrierAsync), $"Barrier flush failed for '{playerLabel}' ({reason}).", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error while flushing player progress barrier: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
                 throw;
@@ -786,11 +787,17 @@ namespace WarcraftPlugin
                     ? CreateBotPlayer(player)
                     : await _database.LoadPlayerFromDatabase(player, XpSystem);
 
-                if (!player.IsValid || wcPlayer == null)
+                if (wcPlayer == null)
                     return;
 
-                SetWcPlayer(player, wcPlayer);
-                Console.WriteLine("Player just connected: " + wcPlayer);
+                Server.NextFrame(() =>
+                {
+                    if (!player.IsValid)
+                        return;
+
+                    SetWcPlayer(player, wcPlayer);
+                    Console.WriteLine("Player just connected: " + wcPlayer);
+                });
             }
             catch (Exception ex)
             {
@@ -809,6 +816,11 @@ namespace WarcraftPlugin
             if (warcraftPlayer == null || string.IsNullOrWhiteSpace(classInternalName))
                 return warcraftPlayer;
 
+            var playerSteamId = (long)player.SteamID;
+            var playerLabel = player.GetRealPlayerName();
+            if (string.IsNullOrWhiteSpace(playerLabel))
+                playerLabel = $"steamid:{playerSteamId}";
+
             var targetClass = classManager.GetAllClasses()
                 .FirstOrDefault(x => x.InternalName.Equals(classInternalName, StringComparison.OrdinalIgnoreCase));
 
@@ -820,7 +832,7 @@ namespace WarcraftPlugin
 
             if (warcraftPlayer.className.Equals(targetClass.InternalName, StringComparison.OrdinalIgnoreCase))
             {
-                warcraftPlayer.DesiredClass = null;
+                warcraftPlayer.ClearQueuedClassChange();
                 return warcraftPlayer;
             }
 
@@ -858,18 +870,17 @@ namespace WarcraftPlugin
                 });
                 await tcs.Task;
 
-                warcraftPlayer.DesiredClass = null;
-
                 // 4. Save new class to DB (Async, DB thread)
-                await _database.SaveCurrentClass(player, targetClass.InternalName);
+                await _database.SaveCurrentClass(playerSteamId, playerLabel, targetClass.InternalName);
 
                 // 5. Load new class stats (Async, DB thread)
-                var refreshedPlayer = await _database.LoadPlayerFromDatabase(player, XpSystem);
+                var refreshedPlayer = await _database.LoadPlayerFromDatabase(player, XpSystem, playerSteamId, playerLabel);
 
                 if (refreshedPlayer == null)
                 {
                     Console.WriteLine($"[Warcraft] Failed to reload player after class change. Reverting.");
-                    await _database.SaveCurrentClass(player, oldClassName);
+                    await _database.SaveCurrentClass(playerSteamId, playerLabel, oldClassName);
+                    warcraftPlayer.ClearQueuedClassChange();
 
                     Server.NextFrame(() => player.PrintToChat($" {ChatColors.Red}Error changing class. Please try again."));
                     return warcraftPlayer;
@@ -886,7 +897,7 @@ namespace WarcraftPlugin
                             return;
                         }
 
-                        refreshedPlayer.DesiredClass = null;
+                        refreshedPlayer.ClearQueuedClassChange();
                         SetWcPlayer(player, refreshedPlayer);
 
                         if (preservedItems?.Count > 0)
@@ -909,23 +920,24 @@ namespace WarcraftPlugin
                     }
                 });
                 await applyTcs.Task;
+                warcraftPlayer.ClearQueuedClassChange();
                 return refreshedPlayer;
             }
             catch (Exception ex)
             {
-                PersistentLogger.Error(nameof(ChangeClass), $"ChangeClass failed for '{player?.PlayerName}' -> '{classInternalName}'.", ex);
+                PersistentLogger.Error(nameof(ChangeClass), $"ChangeClass failed for '{playerLabel}' -> '{classInternalName}'.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error in ChangeClass: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
                 Server.NextFrame(() => player.PrintToChat($" {ChatColors.Red}An error occurred while changing class."));
 
-                warcraftPlayer.DesiredClass = null;
+                warcraftPlayer.ClearQueuedClassChange();
                 try
                 {
-                    await _database.SaveCurrentClass(player, oldClassName);
+                    await _database.SaveCurrentClass(playerSteamId, playerLabel, oldClassName);
                 }
                 catch (Exception revertEx)
                 {
-                    PersistentLogger.Error(nameof(ChangeClass), $"Failed to revert class change for '{player?.PlayerName}' back to '{oldClassName}'.", revertEx);
+                    PersistentLogger.Error(nameof(ChangeClass), $"Failed to revert class change for '{playerLabel}' back to '{oldClassName}'.", revertEx);
                     Console.WriteLine($"[WarcraftPlugin] Failed to revert class change: {revertEx.Message}");
                     Console.WriteLine(revertEx.StackTrace);
                 }
