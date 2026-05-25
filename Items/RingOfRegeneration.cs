@@ -27,8 +27,7 @@ internal class RingOfRegeneration : ShopItem
 
         public override void OnTick()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn.Value;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
             if (pawn.Health < pawn.MaxHealth)
             {
                 Owner.SetHp(pawn.Health + regenPerSecond);

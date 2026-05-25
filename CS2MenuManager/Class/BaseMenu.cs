@@ -135,12 +135,12 @@ public abstract class BaseMenuInstance(CCSPlayerController player, IMenu menu) :
     /// <summary>
     /// Gets or sets the current page number of the menu.
     /// </summary>
-    public int Page { get; private set; }
+    public int Page { get; protected set; }
 
     /// <summary>
     /// Gets or sets the current offset of the menu items.
     /// </summary>
-    public int CurrentOffset { get; private set; }
+    public int CurrentOffset { get; protected set; }
 
     /// <summary>
     /// Gets the number of items displayed per page.

@@ -6,14 +6,17 @@ using WarcraftPlugin.Models;
 
 namespace WarcraftPlugin.Core
 {
-    internal class CooldownManager
+    internal class CooldownManager : System.IDisposable
     {
         private readonly float _tickRate = 0.25f;
         private readonly HashSet<WarcraftPlayer> _playersOnCooldown = [];
+        private readonly List<WarcraftPlayer> _cooldownScratch = [];
+        private Timer _timer;
 
         internal void Initialize()
         {
-            WarcraftPlugin.Instance.AddTimer(_tickRate, CooldownTick, TimerFlags.REPEAT);
+            _timer?.Kill();
+            _timer = WarcraftPlugin.Instance.AddTimer(_tickRate, CooldownTick, TimerFlags.REPEAT);
         }
 
         private void RegisterPlayer(WarcraftPlayer player)
@@ -34,7 +37,13 @@ namespace WarcraftPlugin.Core
 
         private void CooldownTick()
         {
-            foreach (var wcPlayer in _playersOnCooldown.ToArray())
+            if (_playersOnCooldown.Count == 0)
+                return;
+
+            _cooldownScratch.Clear();
+            _cooldownScratch.AddRange(_playersOnCooldown);
+
+            foreach (var wcPlayer in _cooldownScratch)
             {
                 var player = wcPlayer?.GetPlayer();
                 if (player == null || !player.IsValid)
@@ -108,6 +117,14 @@ namespace WarcraftPlugin.Core
 
             player.PlayLocalSound("sounds/weapons/taser/taser_charge_ready.vsnd");
             player.PrintToCenter(WarcraftPlugin.Instance.Localizer["ability.ready", ability.DisplayName]);
+        }
+
+        public void Dispose()
+        {
+            _timer?.Kill();
+            _timer = null;
+            _playersOnCooldown.Clear();
+            _cooldownScratch.Clear();
         }
     }
 }

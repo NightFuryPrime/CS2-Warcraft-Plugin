@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Events;
 using CS2MenuManager.API.Class;
 using CS2MenuManager.API.Enum;
 using CS2MenuManager.API.Interface;
@@ -83,6 +84,7 @@ public class WasdMenuInstance : BaseMenuInstance
         };
 
         Player.SaveSpeed(ref OldVelocityModifier);
+        RestoreMenuState();
     }
 
     /// <summary>
@@ -150,6 +152,7 @@ public class WasdMenuInstance : BaseMenuInstance
     /// </summary>
     public override void Close(bool exitSound)
     {
+        SaveMenuState();
         base.Close(exitSound);
         Menu.Plugin.RemoveListener<OnTick>(OnTick);
 
@@ -212,6 +215,7 @@ public class WasdMenuInstance : BaseMenuInstance
         if (!string.IsNullOrEmpty(Config.Sound.Select))
             Player.ExecuteClientCommand($"play {Config.Sound.Select}");
 
+        SaveMenuState();
         HandleSelectAction(option);
     }
 
@@ -253,5 +257,98 @@ public class WasdMenuInstance : BaseMenuInstance
 
         if (!string.IsNullOrEmpty(Config.Sound.ScrollUp))
             Player.ExecuteClientCommand($"play {Config.Sound.ScrollUp}");
+    }
+
+    private void SaveMenuState()
+    {
+        if (!MenuStateStorage.TryGetValue(Player.SteamID, out var playerStates))
+        {
+            playerStates = [];
+            MenuStateStorage[Player.SteamID] = playerStates;
+        }
+
+        playerStates[Menu.Title] = new MenuState(
+            Page,
+            CurrentOffset,
+            CurrentChoiceIndex,
+            PrevPageOffsets.Reverse().ToArray());
+    }
+
+    private void RestoreMenuState()
+    {
+        if (!MenuStateStorage.TryGetValue(Player.SteamID, out var playerStates) ||
+            !playerStates.TryGetValue(Menu.Title, out var state))
+        {
+            return;
+        }
+
+        Page = state.Page;
+        CurrentOffset = Math.Clamp(state.CurrentOffset, 0, Math.Max(Menu.ItemOptions.Count - 1, 0));
+        CurrentChoiceIndex = Math.Clamp(state.CurrentChoiceIndex, 0, Math.Max(Menu.ItemOptions.Count - 1, 0));
+
+        PrevPageOffsets.Clear();
+        foreach (var offset in state.PrevPageOffsets)
+        {
+            PrevPageOffsets.Push(offset);
+        }
+    }
+
+    public static void CleanupPlayerState(ulong steamId)
+    {
+        MenuStateStorage.Remove(steamId);
+    }
+
+    public static void CleanupAllStates()
+    {
+        MenuStateStorage.Clear();
+    }
+
+    private sealed record MenuState(int Page, int CurrentOffset, int CurrentChoiceIndex, int[] PrevPageOffsets);
+
+    private static readonly Dictionary<ulong, Dictionary<string, MenuState>> MenuStateStorage = [];
+}
+
+public static class WasdMenuStateManager
+{
+    private static BasePlugin? _plugin;
+    private static bool _registered;
+
+    public static void RegisterEvents(BasePlugin plugin)
+    {
+        if (plugin == null || _registered)
+            return;
+
+        _plugin = plugin;
+        _plugin.RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
+        _plugin.RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
+        _registered = true;
+    }
+
+    public static void UnregisterEvents()
+    {
+        if (_plugin == null || !_registered)
+            return;
+
+        _plugin.DeregisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
+        _plugin.DeregisterEventHandler<EventRoundEnd>(OnRoundEnd);
+        _plugin = null;
+        _registered = false;
+        WasdMenuInstance.CleanupAllStates();
+    }
+
+    private static HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
+    {
+        if (@event.Userid != null)
+        {
+            WasdMenuInstance.CleanupPlayerState(@event.Userid.SteamID);
+        }
+
+        return HookResult.Continue;
+    }
+
+    private static HookResult OnRoundEnd(EventRoundEnd @event, GameEventInfo info)
+    {
+        WasdMenuInstance.CleanupAllStates();
+        return HookResult.Continue;
     }
 }

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Events.ExtendedEvents;
 using WarcraftPlugin.Helpers;
@@ -22,8 +23,11 @@ namespace WarcraftPlugin.Classes
         private readonly List<Drone> _drones = [];
         private static readonly Vector _droneDefaultPosition = new(70, -70, 90);
         private static readonly int _droneUltimateAmount = 3;
-        private Timer _ultimateTimer;
+        private Timer _ultimateEndTimer;
         private const int _ultimateTime = 20;
+        private const float UltimateOrbitRadius = 80f;
+        private const float UltimateOrbitSpeed = 16f;
+        private bool _ultimateOrbitActive;
         private OnTick? _updateDronesListener;
 
         public override string DisplayName => "Tinker";
@@ -35,13 +39,15 @@ namespace WarcraftPlugin.Classes
             "models/anubis/structures/pillar02_base01.vmdl"
         ];
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Attack Drone", "Deploy a drone that attacks nearby enemies. Damage and rocket chance scale with level."),
             new WarcraftAbility("Spare Parts", "4/8/12/16/20% chance to not lose ammo when firing."),
             new WarcraftAbility("Spring Trap", "Deploy a trap which launches players into the air with 500/1000/1500/2000/2500 force."),
             new WarcraftCooldownAbility("Drone Swarm", "Summon a swarm of attack drones that damage all nearby enemies.", 50f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -95,7 +101,10 @@ namespace WarcraftPlugin.Classes
                 var decoy = Player.GiveWeapon<CDecoyGrenade>("weapon_decoy");
                 if (decoy != null)
                 {
-                    decoy.AttributeManager.Item.CustomName = Localizer["tinker.ability.2"];
+                    if (decoy.AttributeManager?.Item != null)
+                    {
+                        decoy.AttributeManager.Item.CustomName = Localizer["tinker.ability.2"];
+                    }
                 }
             }
         }
@@ -124,6 +133,17 @@ namespace WarcraftPlugin.Classes
 
             foreach (var drone in _drones)
             {
+                if (_ultimateOrbitActive)
+                {
+                    drone.Position.X = UltimateOrbitRadius * (float)Math.Cos(drone.Angle);
+                    drone.Position.Y = UltimateOrbitRadius * (float)Math.Sin(drone.Angle);
+                    drone.Angle += UltimateOrbitSpeed * Server.TickInterval;
+                    if (drone.Angle > 2 * Math.PI)
+                    {
+                        drone.Angle -= 2 * (float)Math.PI;
+                    }
+                }
+
                 drone.Update();
             }
         }
@@ -152,8 +172,9 @@ namespace WarcraftPlugin.Classes
                 _updateDronesListener = null;
             }
 
-            _ultimateTimer?.Kill();
-            _ultimateTimer = null;
+            _ultimateEndTimer?.Kill();
+            _ultimateEndTimer = null;
+            _ultimateOrbitActive = false;
 
             foreach (var drone in _drones)
             {
@@ -183,7 +204,8 @@ namespace WarcraftPlugin.Classes
             public override void OnStart()
             {
                 //trap model
-                _trap = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+                _trap = Warcraft.CreateEntityByNameSafe<CDynamicProp>("prop_dynamic");
+                if (_trap == null) { Destroy(); return; }
                 _trap.Teleport(trapPosition.Clone().Add(z: -7), new QAngle(), new Vector());
                 _trap.DispatchSpawn();
                 WarcraftPlugin.Instance.DebugSetModel("[Tinker] TurretTrap", _trap, "models/anubis/structures/pillar02_base01.vmdl");
@@ -199,12 +221,15 @@ namespace WarcraftPlugin.Classes
                 if (!IsTriggered)
                 {
                     //Find players in trap trigger zone
-                    var players = Utilities.GetPlayers();
+                    var players = PlayerCache.GetPlayers();
                     var playersInHurtZone = players.Where(x =>
-                        x.PawnIsAlive &&
-                        !x.AllyOf(Owner) &&
-                        x.PlayerPawn.Value.AbsVelocity.Length() > 50 &&
-                        _triggerZone.Contains(x.PlayerPawn.Value.AbsOrigin.Clone().Add(z: 20))).ToList();
+                    {
+                        if (!x.PawnIsAlive || x.AllyOf(Owner)) return false;
+                        var pawn = x.PlayerPawn?.Value;
+                        return pawn != null &&
+                               pawn.AbsVelocity.Length() > 50 &&
+                               _triggerZone.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
+                    }).ToList();
                     if (playersInHurtZone.Count != 0)
                     {
                         IsTriggered = true;
@@ -215,6 +240,8 @@ namespace WarcraftPlugin.Classes
 
             private void TriggerTrap(List<CCSPlayerController> playersInTrap)
             {
+                if (_trap == null || !_trap.IsValid) return;
+
                 Warcraft.SpawnParticle(_trap.AbsOrigin.Clone().Add(z: 20), "particles/dev/materials_test_puffs.vpcf", 1);
                 //Show trap
                 _trap.SetColor(Color.FromArgb(255, 255, 255, 255));
@@ -249,16 +276,17 @@ namespace WarcraftPlugin.Classes
             if (WarcraftPlayer.GetAbilityLevel(3) < 1 || !IsAbilityReady(3)) return;
 
             StartCooldown(3);
-            _ultimateTimer?.Kill();
+            _ultimateEndTimer?.Kill();
 
             //Ultimate effect
             var pawn = Player.PlayerPawn?.Value;
             if (pawn == null) return;
 
             var ultEffect = Warcraft.SpawnParticle(pawn.AbsOrigin.Clone().Add(z: 40), "particles/ui/ui_experience_award_innerpoint.vpcf");
-            ultEffect.SetParent(pawn);
+            ultEffect?.SetParent(pawn);
 
             ActivateDrones(_droneUltimateAmount);
+            _ultimateOrbitActive = true;
 
             // Define the offset for each drone's angle based on its index
             float angleOffsetPerDrone = (2 * (float)Math.PI) / _drones.Count;
@@ -269,34 +297,11 @@ namespace WarcraftPlugin.Classes
                 _drones[i].Angle = i * angleOffsetPerDrone; // Give each drone a different starting angle
             }
 
-            // Define the radius of the circle and the speed of rotation
-            float radius = 80f; // Radius of the circular path
-            float speed = 16f; // Speed of the circular motion
-
-            // Create a timer to update the drone's position every 0.01 seconds
-            _ultimateTimer = WarcraftPlugin.Instance.AddTimer(0.01f, () =>
-            {
-                foreach (var drone in _drones)
-                {
-                    // Update the X and Y positions using circular motion
-                    drone.Position.X = radius * (float)Math.Cos(drone.Angle);
-                    drone.Position.Y = radius * (float)Math.Sin(drone.Angle);
-
-                    // Increase the angle over time to simulate movement along the circle
-                    drone.Angle += speed * 0.01f; // Multiply by the timer's interval (0.01s)
-
-                    // Keep the angle in the range of 0 to 2 * PI
-                    if (drone.Angle > 2 * Math.PI)
-                    {
-                        drone.Angle -= 2 * (float)Math.PI;
-                    }
-                }
-            }, TimerFlags.REPEAT);
-
             // End ultimate
-            WarcraftPlugin.Instance.AddTimer(_ultimateTime, () =>
+            _ultimateEndTimer = WarcraftPlugin.Instance.AddTimer(_ultimateTime, () =>
             {
-                _ultimateTimer?.Kill();
+                _ultimateOrbitActive = false;
+                _ultimateEndTimer = null;
                 if (Player.IsAlive())
                     ActivateDrones(1);
             });

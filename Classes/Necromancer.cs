@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using g3;
 using WarcraftPlugin.Models;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using CounterStrikeSharp.API.Modules.Timers;
 using WarcraftPlugin.Summons;
@@ -21,13 +22,15 @@ namespace WarcraftPlugin.Classes
         public override string DisplayName => "Necromancer";
         public override Color DefaultColor => Color.Black;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Life Drain", "Heal for 6/12/18/24/30% of damage dealt."),
             new WarcraftAbility("Poison Cloud", "Smoke cloud deals 2/4/6/8/10 damage per tick."),
             new WarcraftAbility("Splintered Soul", "16/32/48/64/80% chance to cheat death."),
             new WarcraftCooldownAbility("Raise Dead", "Summon a horde of undead chicken to fight for you.", 50f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private readonly List<Zombie> _zombies = new();
         private const int _maxZombies = 10;
@@ -83,11 +86,14 @@ namespace WarcraftPlugin.Classes
                         Player.PrintToChat(" " + Localizer["necromancer.cheatdeath"]);
                         Player.Respawn();
 
-                        Server.NextFrame(() => {
-                            if (Player.IsAlive()) {
+                        Server.NextFrame(() =>
+                        {
+                            if (Player.IsAlive())
+                            {
                                 Player.SetHp(1);
                                 var respawnPawn = Player.PlayerPawn.Value;
-                                if (respawnPawn != null) {
+                                if (respawnPawn != null)
+                                {
                                     Warcraft.SpawnParticle(respawnPawn.AbsOrigin, "particles/explosions_fx/explosion_smokegrenade_init.vpcf", 2);
                                 }
                                 Player.EmitSound("Player.BecomeGhost", volume: 0.5f);
@@ -133,7 +139,8 @@ namespace WarcraftPlugin.Classes
             if (attackerPawn != null && attackerPawn.Health < attackerPawn.MaxHealth)
             {
                 var victimPawn = victim.PlayerPawn.Value;
-                if (victimPawn != null) {
+                if (victimPawn != null)
+                {
                     Warcraft.SpawnParticle(victimPawn.AbsOrigin.Clone().Add(z: 30), "particles/critters/chicken/chicken_impact_burst_zombie.vpcf");
                 }
                 var healthDrained = hurt.DmgHealth * ((float)WarcraftPlayer.GetAbilityLevel(0) / WarcraftPlugin.MaxSkillLevel * 0.3f);
@@ -268,8 +275,9 @@ namespace WarcraftPlugin.Classes
             public override void OnTick()
             {
                 //Find players within area
-                var playersInHurtZone = Utilities.GetPlayers()
-                    .Where(x => {
+                var playersInHurtZone = PlayerCache.GetPlayers()
+                    .Where(x =>
+                    {
                         if (!x.PawnIsAlive || x.AllyOf(Owner)) return false;
                         var pawn = x.PlayerPawn?.Value;
                         return pawn != null && _hurtBox.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
@@ -287,7 +295,7 @@ namespace WarcraftPlugin.Classes
                 }
             }
 
-            public override void OnFinish(){}
+            public override void OnFinish() { }
         }
     }
 }

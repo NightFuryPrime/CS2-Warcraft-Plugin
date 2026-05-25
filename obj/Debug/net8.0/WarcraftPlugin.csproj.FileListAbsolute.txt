@@ -90,3 +90,8 @@ C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\obj\Deb
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\obj\Debug\net8.0\refint\WarcraftPlugin.dll
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\obj\Debug\net8.0\WarcraftPlugin.pdb
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\obj\Debug\net8.0\ref\WarcraftPlugin.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\FastGenericNew.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\System.IO.Pipelines.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\System.Text.Encodings.Web.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\System.Text.Json.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll

@@ -20,14 +20,12 @@ namespace WarcraftPlugin.Core.Effects.Shared
 
     public class StunEffect : WarcraftEffect
     {
-        private float _originalSpeed;
-        private float _originalModifier;
         private CParticleSystem _particle;
         private readonly CCSPlayerController _attacker;
         private readonly string _abilityName;
 
         public StunEffect(CCSPlayerController owner, CCSPlayerController attacker, string abilityName, float duration)
-            : base(owner, duration)
+            : base(owner, duration, onTickInterval: 0f)
         {
             _attacker = attacker;
             _abilityName = abilityName;
@@ -35,15 +33,13 @@ namespace WarcraftPlugin.Core.Effects.Shared
 
         public override void OnStart()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn.Value;
-            _originalSpeed = pawn.MovementServices.Maxspeed;
-            _originalModifier = pawn.VelocityModifier;
-            pawn.MovementServices.Maxspeed = 0;
-            pawn.VelocityModifier = 0;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
+            SetMaxSpeedMultiplier(Owner, 0f, "stun");
+            SetVelocityMultiplier(Owner, 0f, "stun");
+            RefreshPlayerState(Owner);
 
             _particle = Warcraft.SpawnParticle(Owner.EyePosition(-60), "particles/ui/ammohealthcenter/ui_hud_kill_streaks_circleglow.vpcf", Duration);
-            _particle.SetParent(pawn);
+            _particle?.SetParent(pawn);
 
             if (!string.IsNullOrEmpty(_abilityName))
             {
@@ -56,10 +52,9 @@ namespace WarcraftPlugin.Core.Effects.Shared
 
         public override void OnFinish()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn.Value;
-            pawn.MovementServices.Maxspeed = _originalSpeed;
-            pawn.VelocityModifier = _originalModifier;
+            RemoveStateContributions(Owner, "stun");
+            RefreshPlayerState(Owner);
+            _particle.RemoveIfValid();
         }
     }
 }

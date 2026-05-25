@@ -8,8 +8,7 @@ namespace WarcraftPlugin.Models
 {
     public class WarcraftPlayer
     {
-        private int _playerIndex;
-        internal int Index => _playerIndex;
+        internal int Index => Player?.Slot ?? 0;
         internal bool IsMaxLevel => currentLevel == WarcraftPlugin.MaxLevel;
         internal CCSPlayerController GetPlayer() => Player;
 
@@ -63,7 +62,7 @@ namespace WarcraftPlugin.Models
         public override string ToString()
         {
             return
-                $"[{_playerIndex}]: {{raceName={className}, currentLevel={currentLevel}, currentXp={currentXp}, amountToLevel={amountToLevel}}}";
+                $"[{Index}]: {{raceName={className}, currentLevel={currentLevel}, currentXp={currentXp}, amountToLevel={amountToLevel}}}";
         }
 
         public int GetAbilityLevel(int abilityIndex)

@@ -1,4 +1,5 @@
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Events;
 using WarcraftPlugin.Events.ExtendedEvents;
 using System;
 using System.Drawing;
@@ -18,7 +19,7 @@ internal class TalismanOfEvasion : ShopItem
 
     internal override void Apply(CCSPlayerController player) { }
 
-    internal override void OnPlayerHurtOther(EventPlayerHurtOther @event)
+    internal override void OnPlayerHurt(EventPlayerHurt @event)
     {
         if (Warcraft.RollChance((float)(EvasionChance * 100)))
         {

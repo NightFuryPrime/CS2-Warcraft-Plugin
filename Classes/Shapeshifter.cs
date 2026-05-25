@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
@@ -27,13 +28,15 @@ namespace WarcraftPlugin.Classes
         private OnTick? _updateCameraListener;
         private readonly List<string> _weaponList = [];
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Adaptive Disguise", "8/16/24/32/40% chance to spawn disguised as an enemy."),
             new WarcraftAbility("Doppelganger", "Create a temporary inanimate clone of yourself, lasting 5/10/15/20/25 seconds."),
             new WarcraftAbility("Imposter syndrom", "20/40/60/80/100% chance to be notified when revealed by enemies on radar."),
             new WarcraftCooldownAbility("Morphling", "Transform into an unassuming object.", 20f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -99,7 +102,7 @@ namespace WarcraftPlugin.Classes
         private void Disguise()
         {
             var teamToDisguise = Player.Team == CsTeam.CounterTerrorist ? CsTeam.Terrorist : CsTeam.CounterTerrorist;
-            var enemyplayer = Utilities.GetPlayers().Where(x => x.Team == teamToDisguise && x.PawnIsAlive).FirstOrDefault();
+            var enemyplayer = PlayerCache.GetPlayers().Where(x => x.Team == teamToDisguise && x.PawnIsAlive).FirstOrDefault();
 
             if (enemyplayer == null)
             {
@@ -231,18 +234,33 @@ namespace WarcraftPlugin.Classes
             }
 
             BreakTransformation();
-            WeaponStrip();
+            if (!WeaponStrip())
+                return;
 
             var pawn = Player.PlayerPawn?.Value;
             if (pawn == null) return;
 
             pawn.SetColor(Color.FromArgb(0, 255, 255, 255));
 
-            _cameraProp = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+            _cameraProp = Warcraft.CreateEntityByNameSafe<CDynamicProp>("prop_dynamic");
+            if (_cameraProp == null)
+            {
+                WeaponRestore();
+                SetDefaultAppearance();
+                return;
+            }
             _cameraProp.DispatchSpawn();
             _cameraProp.SetColor(Color.FromArgb(0, 255, 255, 255));
 
-            _playerShapeshiftProp = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
+            _playerShapeshiftProp = Warcraft.CreateEntityByNameSafe<CDynamicProp>("prop_dynamic_override");
+            if (_playerShapeshiftProp == null)
+            {
+                _cameraProp.RemoveIfValid();
+                _cameraProp = null;
+                WeaponRestore();
+                SetDefaultAppearance();
+                return;
+            }
             _playerShapeshiftProp.DispatchSpawn();
 
             _playerShapeshiftProp.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_NEVER;
@@ -269,7 +287,7 @@ namespace WarcraftPlugin.Classes
 
         private void UpdateCamera()
         {
-            if (!_cameraProp.IsValid || !Player.IsAlive())
+            if (_cameraProp == null || !_cameraProp.IsValid || !Player.IsAlive())
             {
                 UnhookCamera();
                 return;
@@ -292,22 +310,37 @@ namespace WarcraftPlugin.Classes
             _cameraProp.Teleport(Player.CalculatePositionInFront(-110, 90), pawn.V_angle, new Vector());
         }
 
-        private void WeaponStrip()
+        private bool WeaponStrip()
         {
             _weaponList.Clear();
             var pawn = Player.PlayerPawn?.Value;
-            if (pawn == null || pawn.WeaponServices == null) return;
+            if (pawn == null || pawn.WeaponServices == null) return false;
 
             pawn.WeaponServices.PreventWeaponPickup = true;
 
-            Player.DropWeaponByDesignerName("weapon_c4");
-
-            foreach (var weapon in pawn.WeaponServices.MyWeapons)
+            try
             {
-                _weaponList.Add(weapon.Value!.DesignerName!);
-            }
+                Player.DropWeaponByDesignerName("weapon_c4");
 
-            Player.RemoveWeapons();
+                foreach (var weapon in pawn.WeaponServices.MyWeapons)
+                {
+                    var heldWeapon = weapon.Value;
+                    if (heldWeapon == null || !heldWeapon.IsValid || !ShouldPreserveWeapon(heldWeapon.DesignerName))
+                        continue;
+
+                    _weaponList.Add(heldWeapon.DesignerName);
+                }
+
+                Player.RemoveWeapons();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                pawn.WeaponServices.PreventWeaponPickup = false;
+                _weaponList.Clear();
+                WarcraftPlugin.Instance.DebugLog($"[Shapeshifter] Weapon strip failed for {Player?.PlayerName}: {ex.Message}");
+                return false;
+            }
         }
 
         private void WeaponRestore()
@@ -323,6 +356,25 @@ namespace WarcraftPlugin.Classes
                     Player.GiveWeapon(weapon);
                 }
             }
+
+            _weaponList.Clear();
+        }
+
+        internal static bool ShouldPreserveWeapon(string designerName)
+        {
+            var weaponName = WeaponTypes.NormalizeName(designerName);
+            return !string.IsNullOrWhiteSpace(weaponName) &&
+                   !weaponName.StartsWith("knife", StringComparison.Ordinal) &&
+                   weaponName != "c4" &&
+                   weaponName != "taser" &&
+                   weaponName != "decoy" &&
+                   weaponName != "flashbang" &&
+                   weaponName != "hegrenade" &&
+                   weaponName != "smokegrenade" &&
+                   weaponName != "molotov" &&
+                   weaponName != "incgrenade" &&
+                   weaponName != "tagrenade" &&
+                   weaponName != "breachcharge";
         }
 
         private static readonly List<string> Props =
@@ -401,7 +453,8 @@ namespace WarcraftPlugin.Classes
 
         public override void OnStart()
         {
-            _clone = Utilities.CreateEntityByName<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+            _clone = Warcraft.CreateEntityByNameSafe<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+            if (_clone == null) { Destroy(); return; }
             _clone.DispatchSpawn();
             WarcraftPlugin.Instance.AddTimer(0.0f, () =>
             {
@@ -428,7 +481,8 @@ namespace WarcraftPlugin.Classes
 
             _clone.Teleport(_decoyVector.Clone().Add(z: -2), new QAngle(0, ownerPawn.GetEyeAngles().Y, 0), new Vector());
 
-            _cloneDebrisHead = Utilities.CreateEntityByName<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+            _cloneDebrisHead = Warcraft.CreateEntityByNameSafe<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+            if (_cloneDebrisHead == null) { Destroy(); return; }
             _cloneDebrisHead.DispatchSpawn();
             WarcraftPlugin.Instance.AddTimer(0.0f, () =>
             {
@@ -443,12 +497,12 @@ namespace WarcraftPlugin.Classes
 
         public override void OnTick()
         {
-            if (!_clone.IsValid && _cloneDebrisHead.IsValid)
+            if (_clone != null && !_clone.IsValid && _cloneDebrisHead?.IsValid == true)
             {
                 _cloneDebrisHead?.AcceptInput("Break");
             }
 
-            if (!_cloneDebrisHead.IsValid)
+            if (_cloneDebrisHead == null || !_cloneDebrisHead.IsValid)
             {
                 _clone?.RemoveIfValid();
             }
@@ -458,7 +512,7 @@ namespace WarcraftPlugin.Classes
         {
             _clone?.RemoveIfValid();
 
-            if (_cloneDebrisHead.IsValid)
+            if (_cloneDebrisHead?.IsValid == true)
             {
                 _cloneDebrisHead?.AcceptInput("Break");
             }

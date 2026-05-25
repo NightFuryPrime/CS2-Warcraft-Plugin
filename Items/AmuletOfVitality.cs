@@ -21,31 +21,23 @@ internal class AmuletOfVitality : ShopItem
         new AmuletOfVitalityEffect(player, HealthBonus).Start();
     }
 
-    private class AmuletOfVitalityEffect(CCSPlayerController owner, int healthBonus) : WarcraftEffect(owner)
+    private class AmuletOfVitalityEffect(CCSPlayerController owner, int healthBonus)
+        : WarcraftEffect(owner, onTickInterval: 0f)
     {
-        private int _originalMaxHealth;
-
         public override void OnStart()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn.Value;
-            _originalMaxHealth = pawn.MaxHealth;
-            pawn.MaxHealth = _originalMaxHealth + healthBonus;
-            var newHealth = pawn.Health + healthBonus;
-            Owner.SetHp((int)newHealth);
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
+            SetMaxHealthBonus(Owner, healthBonus);
+            RefreshPlayerState(Owner);
+            Owner.SetHp(Math.Min(pawn.Health + healthBonus, pawn.MaxHealth));
         }
 
         public override void OnTick() { }
 
         public override void OnFinish()
         {
-            if (!Owner.IsValid || !Owner.PawnIsAlive) return;
-            var pawn = Owner.PlayerPawn.Value;
-            pawn.MaxHealth = _originalMaxHealth;
-            if (pawn.Health > pawn.MaxHealth)
-            {
-                Owner.SetHp(pawn.MaxHealth);
-            }
+            RemoveStateContributions(Owner);
+            RefreshPlayerState(Owner);
         }
     }
 }

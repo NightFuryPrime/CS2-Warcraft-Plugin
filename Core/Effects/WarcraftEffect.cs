@@ -2,6 +2,9 @@
 using Microsoft.Extensions.Localization;
 using System;
 
+using WarcraftPlugin.Core;
+using WarcraftPlugin.Helpers;
+
 namespace WarcraftPlugin.Core.Effects
 {
     /// <summary>
@@ -24,6 +27,8 @@ namespace WarcraftPlugin.Core.Effects
             bool destroyOnChangingRace = true, bool destroyOnDisconnect = true,
             bool destroyOnSpawn = true, bool finishOnDestroy = true, float onTickInterval = 0.25f)
     {
+        private string _stateContributionKeyPrefix;
+
         /// <summary>
         /// Gets the player controller that owns this effect.
         /// </summary>
@@ -52,7 +57,11 @@ namespace WarcraftPlugin.Core.Effects
         /// <summary>
         /// Gets the interval in seconds at which the effect's OnTick method is called.
         /// </summary>
-        public float OnTickInterval { get; set; } = Math.Max(onTickInterval, EffectManager._tickRate);
+        public bool TickEnabled { get; set; } = onTickInterval > 0f;
+
+        public float OnTickInterval { get; set; } = onTickInterval > 0f
+            ? Math.Max(onTickInterval, EffectManager._tickRate)
+            : float.MaxValue;
 
         /// <summary>
         /// Gets the flags indicating the conditions under which the effect should be destroyed.
@@ -89,6 +98,58 @@ namespace WarcraftPlugin.Core.Effects
 
         public void Destroy() => WarcraftPlugin.Instance.EffectManager.DestroyEffect(this);
         public void Start() => WarcraftPlugin.Instance.EffectManager.AddEffect(this);
+
+        protected bool TryGetAliveOwnerPawn(out CCSPlayerPawn pawn) => Owner.TryGetAlivePawn(out pawn);
+
+        protected bool TryGetOwnerActiveWeapon(out CBasePlayerWeapon weapon) => Owner.TryGetActiveWeapon(out weapon);
+
+        protected string StateKey(string suffix = null)
+        {
+            _stateContributionKeyPrefix ??= $"{GetType().FullName}:{Guid.NewGuid():N}";
+            return string.IsNullOrWhiteSpace(suffix)
+                ? _stateContributionKeyPrefix
+                : $"{_stateContributionKeyPrefix}:{suffix}";
+        }
+
+        protected void RemoveStateContributions(CCSPlayerController player, string suffix = null)
+        {
+            DerivedPlayerStateManager.RemoveContribution(player, StateKey(suffix));
+        }
+
+        protected void SetVelocityMultiplier(CCSPlayerController player, float multiplier, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetVelocityMultiplier(player, StateKey(suffix), multiplier);
+        }
+
+        protected void SetVelocityAdditive(CCSPlayerController player, float additive, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetVelocityAdditive(player, StateKey(suffix), additive);
+        }
+
+        protected void SetGravityMultiplier(CCSPlayerController player, float multiplier, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetGravityMultiplier(player, StateKey(suffix), multiplier);
+        }
+
+        protected void SetGravityAdditive(CCSPlayerController player, float additive, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetGravityAdditive(player, StateKey(suffix), additive);
+        }
+
+        protected void SetMaxSpeedMultiplier(CCSPlayerController player, float multiplier, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetMaxSpeedMultiplier(player, StateKey(suffix), multiplier);
+        }
+
+        protected void SetMaxHealthBonus(CCSPlayerController player, int bonus, string suffix = null)
+        {
+            DerivedPlayerStateManager.SetMaxHealthBonus(player, StateKey(suffix), bonus);
+        }
+
+        protected void RefreshPlayerState(CCSPlayerController player, bool resetBaseline = false)
+        {
+            DerivedPlayerStateManager.RefreshDerivedPlayerState(player, resetBaseline);
+        }
     }
 
     /// <summary>

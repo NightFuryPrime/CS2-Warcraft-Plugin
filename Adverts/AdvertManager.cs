@@ -1,7 +1,7 @@
-﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Modules.Timers;
 using Microsoft.Extensions.Localization;
 using System.Linq;
+using WarcraftPlugin.Core;
 
 namespace WarcraftPlugin.Adverts
 {
@@ -9,7 +9,7 @@ namespace WarcraftPlugin.Adverts
     {
         private readonly float _interval = 180f;
         private readonly int _advertCount = WarcraftPlugin.Instance.Localizer.GetAllStrings().Count(x => x.Name.Contains("advert."));
-        private int _advertIndex = 0;
+        private int _advertIndex;
         private Timer? _advertTimer;
 
         internal void Initialize()
@@ -25,7 +25,7 @@ namespace WarcraftPlugin.Adverts
 
         private void AdvertTick()
         {
-            foreach (var player in Utilities.GetPlayers())
+            foreach (var player in PlayerCache.GetPlayers())
             {
                 if (!player.IsValid || player.IsBot) continue;
                 player.PrintToChat($" {WarcraftPlugin.Instance.Localizer[$"advert.{_advertIndex}"]}");
@@ -33,7 +33,7 @@ namespace WarcraftPlugin.Adverts
 
             _advertIndex++;
 
-            if(_advertIndex >= _advertCount) _advertIndex = 0; 
+            if (_advertIndex >= _advertCount) _advertIndex = 0;
         }
     }
 }

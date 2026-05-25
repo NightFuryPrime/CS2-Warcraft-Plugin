@@ -2,6 +2,8 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Events;
 using System;
 using System.Drawing;
+using WarcraftPlugin.Events.ExtendedEvents;
+using WarcraftPlugin.Helpers;
 
 namespace WarcraftPlugin.Items;
 
@@ -24,17 +26,7 @@ internal class DeathboundBulwark : ShopItem
         var incomingArmor = @event.DmgArmor;
         if (incomingHealth <= 0 && incomingArmor <= 0) return;
 
-        var reduction = Math.Clamp(DamageReduction, 0, 0.9);
-        if (incomingHealth > 0)
-        {
-            var reducedHealth = (int)Math.Round(incomingHealth * (1 - reduction));
-            @event.DmgHealth = Math.Max(0, reducedHealth);
-        }
-
-        if (incomingArmor > 0)
-        {
-            var reducedArmor = (int)Math.Round(incomingArmor * (1 - reduction));
-            @event.DmgArmor = Math.Max(0, reducedArmor);
-        }
+        var reduction = DamageMath.CalculateReduction(incomingHealth, incomingArmor, DamageReduction);
+        @event.IgnoreDamage(reduction.PreventedHealth, reduction.PreventedArmor);
     }
 }

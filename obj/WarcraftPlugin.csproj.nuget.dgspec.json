@@ -5,7 +5,7 @@
   },
   "projects": {
     "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj": {
-      "version": "1.0.0",
+      "version": "4.1.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\Legend\\Desktop\\GeminiTests\\CS2WarcraftMod-master\\WarcraftPlugin\\WarcraftPlugin.csproj",
         "projectName": "WarcraftPlugin",
@@ -52,11 +52,11 @@
           "dependencies": {
             "CounterStrikeSharp.API": {
               "target": "Package",
-              "version": "[1.0.363, )"
+              "version": "[1.0.368, )"
             },
             "Dapper": {
               "target": "Package",
-              "version": "[2.1.66, )"
+              "version": "[2.1.79, )"
             },
             "MIConvexHull": {
               "target": "Package",
@@ -68,15 +68,15 @@
             },
             "Microsoft.CodeAnalysis.CSharp": {
               "target": "Package",
-              "version": "[4.14.0, )"
+              "version": "[5.3.0, )"
             },
             "Microsoft.Data.Sqlite": {
               "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[10.0.8, )"
             },
             "MySqlConnector": {
               "target": "Package",
-              "version": "[2.0.0, )"
+              "version": "[2.5.0, )"
             },
             "Newtonsoft.Json": {
               "target": "Package",
@@ -85,6 +85,10 @@
             "System.Data.DataSetExtensions": {
               "target": "Package",
               "version": "[4.5.0, )"
+            },
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[10.0.8, )"
             },
             "Tomlyn": {
               "target": "Package",

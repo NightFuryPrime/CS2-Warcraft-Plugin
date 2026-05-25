@@ -13,18 +13,23 @@ namespace WarcraftPlugin.Classes
 {
     internal class SilentAssassin : WarcraftClass
     {
+        private const string LightweightSpeedKey = "silent-assassin-lightweight-speed";
+        private const string LightweightGravityKey = "silent-assassin-lightweight-gravity";
+
         public override string DisplayName => "Silent Assassin";
         public override Color DefaultColor => Color.Gray;
 
         public override List<string> WeaponWhitelist => ["knife", "c4", "defuse"];
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Shrink", "Reduce model size by 15/20/25/30/35%"),
             new WarcraftAbility("Lightweight", "Increase speed and reduce gravity"),
             new WarcraftAbility("Assassin's Blade", "40% chance to add bonus knife damage"),
             new WarcraftCooldownAbility("Ghost Walk", "Completely invisible for 3 seconds", 15f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private readonly float _scaleMultiplier = 0.05f;
         private readonly float _speedMultiplier = 0.07f;
@@ -61,8 +66,9 @@ namespace WarcraftPlugin.Classes
                 int lightweight = WarcraftPlayer.GetAbilityLevel(1);
                 if (lightweight > 0)
                 {
-                    pawn.VelocityModifier += _speedMultiplier * lightweight;
-                    pawn.GravityScale -= _gravityMultiplier * lightweight;
+                    SetVelocityAdditive(LightweightSpeedKey, _speedMultiplier * lightweight);
+                    SetGravityAdditive(LightweightGravityKey, -_gravityMultiplier * lightweight);
+                    RefreshDerivedPlayerState();
                 }
             });
         }

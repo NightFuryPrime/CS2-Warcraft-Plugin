@@ -65,7 +65,7 @@ namespace WarcraftPlugin.Summons
                 return; // Early return to prevent further execution
             }
 
-            if(InterestScore <= 0)
+            if (InterestScore <= 0)
             {
                 FollowLeader();
             }
@@ -77,7 +77,7 @@ namespace WarcraftPlugin.Summons
                     AttackLeap();
                 }
             }
-            else if(IsFollowingLeader)
+            else if (IsFollowingLeader)
             {
                 var ownerPawn = Owner.PlayerPawn?.Value;
                 if (ownerPawn == null) return;
@@ -89,7 +89,7 @@ namespace WarcraftPlugin.Summons
                     var chickenResetPoint = Owner.CalculatePositionInFront(new Vector(RandomProvider.Next(100), RandomProvider.Next(100), 5));
                     Entity.AbsOrigin.X = chickenResetPoint.X;
                     Entity.AbsOrigin.Y = chickenResetPoint.Y;
-                    Entity.AbsOrigin.Z = ownerPawn.AbsOrigin.Z+5;
+                    Entity.AbsOrigin.Z = ownerPawn.AbsOrigin.Z + 5;
                     Warcraft.SpawnParticle(Entity.AbsOrigin.Clone().Add(z: -50), "particles/entity/env_explosion/test_particle_composite_dark_outline_smoke.vpcf");
                     return;
                 }

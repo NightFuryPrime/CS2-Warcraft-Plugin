@@ -22,7 +22,18 @@ namespace WarcraftPlugin.Events.ExtendedEvents
             if (victim != null && victim.IsAlive() && victimPawn != null && victimPawn.IsValid)
             {
                 var projectedHealth = victimPawn.Health - damageHealth;
-                victimPawn.Health = Math.Max(0, projectedHealth);
+                if (projectedHealth <= 0)
+                {
+                    if (damageArmor > 0)
+                    {
+                        victimPawn.ArmorValue = Math.Max(0, victimPawn.ArmorValue - damageArmor);
+                    }
+
+                    victim.TakeDamage(damageHealth, attacker, killFeedIcon, abilityName: abilityName);
+                    return;
+                }
+
+                victimPawn.Health = projectedHealth;
                 victimPawn.ArmorValue = Math.Max(0, victimPawn.ArmorValue - damageArmor);
                 @event.DmgHealth += damageHealth;
                 @event.DmgArmor += damageArmor;
@@ -30,23 +41,22 @@ namespace WarcraftPlugin.Events.ExtendedEvents
                 var attackerClass = attacker?.GetWarcraftPlayer()?.GetClass();
                 if (killFeedIcon != null)
                 {
-                    var isLethalDamage = projectedHealth <= 0;
-                    attackerClass?.SetKillFeedIcon(isLethalDamage ? killFeedIcon : null);
+                    attackerClass?.SetKillFeedIcon(null);
                 }
 
-                if (!string.IsNullOrEmpty(abilityName))
-                {
-                    if (damageHealth > 0)
-                    {
-                        attacker?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.health.attacker", damageHealth, abilityName]}");
-                        victim?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.health.victim", damageHealth, abilityName]}");
-                    }
+                if (string.IsNullOrEmpty(abilityName))
+                    return;
 
-                    if (damageArmor > 0)
-                    {
-                        attacker?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.armor.attacker", damageArmor, abilityName]}");
-                        victim?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.armor.victim", damageArmor, abilityName]}");
-                    }
+                if (damageHealth > 0)
+                {
+                    attacker?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.health.attacker", damageHealth, abilityName]}");
+                    victim?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.health.victim", damageHealth, abilityName]}");
+                }
+
+                if (damageArmor > 0)
+                {
+                    attacker?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.armor.attacker", damageArmor, abilityName]}");
+                    victim?.PrintToChat($" {WarcraftPlugin.Instance.Localizer["bonus.damage.armor.victim", damageArmor, abilityName]}");
                 }
             }
         }
@@ -60,7 +70,7 @@ namespace WarcraftPlugin.Events.ExtendedEvents
         {
             var victim = @event.Userid;
             var victimPawn = victim?.PlayerPawn?.Value;
-            if (victim != null && victim.IsAlive() && victimPawn != null && victimPawn.IsValid)
+            if (victim != null && victim.IsValid && victimPawn != null && victimPawn.IsValid)
             {
                 int ignoredHealthDamage = Math.Clamp(healthDamageToIgnore ?? @event.DmgHealth, 0, @event.DmgHealth);
                 int ignoredArmorDamage = Math.Clamp(armorDamageToIgnore ?? @event.DmgArmor, 0, @event.DmgArmor);

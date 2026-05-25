@@ -90,3 +90,8 @@ C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Rel
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\runtimes\linux-musl-riscv64\native\libe_sqlite3.so
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\runtimes\linux-riscv64\native\libe_sqlite3.so
 C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\MySqlConnector.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\FastGenericNew.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\System.IO.Pipelines.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\System.Text.Encodings.Web.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\System.Text.Json.dll
+C:\Users\Legend\Desktop\GeminiTests\CS2WarcraftMod-master\WarcraftPlugin\bin\Release\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll

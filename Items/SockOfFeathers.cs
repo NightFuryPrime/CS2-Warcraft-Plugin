@@ -21,23 +21,22 @@ internal class SockOfFeathers : ShopItem
         new SockOfFeathersEffect(player, GravityModifier).Start();
     }
 
-    private class SockOfFeathersEffect(CCSPlayerController owner, float gravityModifier) : WarcraftEffect(owner)
+    private class SockOfFeathersEffect(CCSPlayerController owner, float gravityModifier)
+        : WarcraftEffect(owner, onTickInterval: 0f)
     {
-        private float _originalGravityScale;
-
         public override void OnStart()
         {
-            if (!Owner.IsAlive()) return;
-            _originalGravityScale = Owner.PlayerPawn.Value.GravityScale;
-            Owner.PlayerPawn.Value.GravityScale = _originalGravityScale * gravityModifier;
+            if (!TryGetAliveOwnerPawn(out _)) return;
+            SetGravityMultiplier(Owner, gravityModifier);
+            RefreshPlayerState(Owner);
         }
 
         public override void OnTick() { }
 
         public override void OnFinish()
         {
-            if (!Owner.IsValid || !Owner.PawnIsAlive) return;
-            Owner.PlayerPawn.Value.GravityScale = _originalGravityScale;
+            RemoveStateContributions(Owner);
+            RefreshPlayerState(Owner);
         }
     }
 }

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Events.ExtendedEvents;
 using WarcraftPlugin.Helpers;
@@ -20,14 +21,14 @@ namespace WarcraftPlugin.Classes
     internal class Ranger : WarcraftClass
     {
         private const string TrapIndicatorParticle = "particles/ui/ui_gameplay_ring.vpcf";
-        private DashEffect _dashEffect;
-
         public override string DisplayName => "Ranger";
         public override Color DefaultColor => Color.Green;
 
         public override List<string> PreloadResources => [TrapIndicatorParticle];
 
-        public override List<IWarcraftAbility> Abilities =>
+        private List<IWarcraftAbility> _abilities;
+
+        public override List<IWarcraftAbility> Abilities => _abilities ??=
         [
             new WarcraftCooldownAbility("Light footed", "Nimbly perform a dash in midair, cooldown decreases from 18s to 6s as you level up.", () => 18f / Math.Max(1, WarcraftPlayer.GetAbilityLevel(0))),
             new WarcraftAbility("Ensnare trap", "Place a trap by throwing a decoy that deals 10/20/30/40/50 damage on trigger."),
@@ -71,7 +72,7 @@ namespace WarcraftPlugin.Classes
 
             var markmansLevel = WarcraftPlayer.GetAbilityLevel(2);
 
-            if (markmansLevel > 0 && WeaponTypes.Snipers.Contains(@event.Weapon))
+            if (markmansLevel > 0 && WeaponTypes.IsSniper(@event.Weapon))
             {
                 @event.AddBonusDamage(markmansLevel * 2, abilityName: GetAbility(2).DisplayName);
                 Warcraft.SpawnParticle(victim.PlayerPawn.Value.AbsOrigin.Clone().Add(z: 60), "particles/maps/de_overpass/chicken_impact_burst2.vpcf");
@@ -203,7 +204,7 @@ namespace WarcraftPlugin.Classes
                 _extraJumpDelayTick = Server.CurrentTime + _extraJumpDelay;
                 _groundCheckDelayTick = Server.CurrentTime + 0.1f; // Don't check ground for first 0.1 seconds
                 EnableGhostMovement(); // Enable ghost movement so dash works properly
-                Owner.PrintToChat($"[DEBUG] Dash effect started, can dash at {_extraJumpDelayTick}");
+                WarcraftPlugin.Instance?.DebugLog($"[Ranger] Dash effect started, can dash at {_extraJumpDelayTick}.");
             }
 
             public override void OnTick()
@@ -221,7 +222,7 @@ namespace WarcraftPlugin.Classes
                 // Only check ground status after grace period to avoid destroying effect during jump startup
                 if (Server.CurrentTime > _groundCheckDelayTick && (pawn.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0)
                 {
-                    Owner.PrintToChat($"[DEBUG] Dash destroyed - player on ground");
+                    WarcraftPlugin.Instance?.DebugLog("[Ranger] Dash effect destroyed because the player landed.");
                     this.Destroy();
                     return;
                 }
@@ -237,12 +238,12 @@ namespace WarcraftPlugin.Classes
 
                 if (jumpPressed)
                 {
-                    Owner.PrintToChat($"[DEBUG] Jump pressed detected at {Server.CurrentTime}, delay over = {Server.CurrentTime > _extraJumpDelayTick}");
+                    WarcraftPlugin.Instance?.DebugLog($"[Ranger] Jump press detected at {Server.CurrentTime}, delayOver={Server.CurrentTime > _extraJumpDelayTick}.");
                 }
 
                 if (Server.CurrentTime > _extraJumpDelayTick && jumpPressed)
                 {
-                    Owner.PrintToChat($"[DEBUG] DASHING!");
+                    WarcraftPlugin.Instance?.DebugLog("[Ranger] Triggering midair dash.");
                     Dash(pawn, movement, currentButtonState);
                     Owner.GetWarcraftPlayer().GetClass().StartCooldown(0);
                     this.Destroy();
@@ -311,7 +312,7 @@ namespace WarcraftPlugin.Classes
             private readonly CDecoyProjectile _decoyProjectile = decoyProjectile;
             private CParticleSystem _trapIndicator;
             private Box3d _triggerZone;
-            private readonly List<SnaredPlayerState> _snaredPlayers = [];
+            private readonly List<CCSPlayerController> _snaredPlayers = [];
 
             private bool IsTriggered { get; set; } = false;
 
@@ -345,8 +346,9 @@ namespace WarcraftPlugin.Classes
                 if (!IsTriggered)
                 {
                     //Find players in trap trigger zone
-                    var players = Utilities.GetPlayers();
-                    var playersInHurtZone = players.Where(x => {
+                    var players = PlayerCache.GetPlayers();
+                    var playersInHurtZone = players.Where(x =>
+                    {
                         if (!x.PawnIsAlive || x.AllyOf(Owner)) return false;
                         var pawn = x.PlayerPawn?.Value;
                         return pawn != null && _triggerZone.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
@@ -372,8 +374,7 @@ namespace WarcraftPlugin.Classes
                     var pawn = player.PlayerPawn?.Value;
                     var movement = pawn?.MovementServices;
                     if (pawn == null || movement == null) continue;
-                    var snaredState = new SnaredPlayerState(player, pawn.VelocityModifier, movement.Maxspeed);
-                    _snaredPlayers.Add(snaredState);
+                    _snaredPlayers.Add(player);
 
                     player.TakeDamage(Owner.GetWarcraftPlayer().GetAbilityLevel(1) * 10, Owner, KillFeedIcon.tripwirefire);
 
@@ -381,8 +382,9 @@ namespace WarcraftPlugin.Classes
                     pawn.AbsVelocity.Add(z: 600);
 
                     // Apply slow
-                    pawn.VelocityModifier = 0;
-                    movement.Maxspeed = 20;
+                    SetVelocityMultiplier(player, 0f, $"trap-{player.Handle}");
+                    SetMaxSpeedMultiplier(player, 20f / Math.Max(movement.Maxspeed, 1f), $"trap-{player.Handle}");
+                    RefreshPlayerState(player);
                     Warcraft.SpawnParticle(player.CalculatePositionInFront(10, 60), "particles/blood_impact/blood_impact_basic.vpcf");
                     player.PrintToChat($" {Localizer["ranger.trappedby", Owner.GetRealPlayerName()]}");
                     Owner.PrintToChat($" {Localizer["ranger.trapowner", player.GetRealPlayerName()]}");
@@ -411,47 +413,17 @@ namespace WarcraftPlugin.Classes
             {
                 foreach (var snared in _snaredPlayers.ToArray())
                 {
-                    RestorePlayerMovement(snared.Player, snared);
+                    RestorePlayerMovement(snared);
                 }
                 _snaredPlayers.Clear();
             }
 
-            private void RestorePlayerMovement(CCSPlayerController player, SnaredPlayerState stateOverride = null)
+            private void RestorePlayerMovement(CCSPlayerController player)
             {
                 if (player == null || !player.IsValid) return;
-
-                var pawn = player.PlayerPawn.Value;
-                var movement = pawn?.MovementServices;
-                if (pawn == null || !pawn.IsValid || movement == null) return;
-
-                var state = stateOverride;
-                if (state == null)
-                {
-                    var index = _snaredPlayers.FindIndex(s => s.Player != null && s.Player.Handle == player.Handle);
-                    if (index >= 0)
-                    {
-                        state = _snaredPlayers[index];
-                        _snaredPlayers.RemoveAt(index);
-                    }
-                }
-                if (state == null) return;
-
-                pawn.VelocityModifier = state.OriginalVelocityModifier;
-                movement.Maxspeed = state.OriginalMaxSpeed;
-            }
-
-            private sealed class SnaredPlayerState
-            {
-                public SnaredPlayerState(CCSPlayerController player, float velocityModifier, float maxSpeed)
-                {
-                    Player = player;
-                    OriginalVelocityModifier = velocityModifier;
-                    OriginalMaxSpeed = maxSpeed;
-                }
-
-                public CCSPlayerController Player { get; }
-                public float OriginalVelocityModifier { get; }
-                public float OriginalMaxSpeed { get; }
+                RemoveStateContributions(player, $"trap-{player.Handle}");
+                RefreshPlayerState(player);
+                _snaredPlayers.RemoveAll(x => x?.Handle == player.Handle);
             }
         }
 
@@ -459,7 +431,7 @@ namespace WarcraftPlugin.Classes
         {
             private readonly int _stormHeight = 150;
             private readonly int _stormArea = 280;
-            private readonly int _arrowsPerVolley = 15;
+            private readonly int _arrowsPerVolley = 4;
             private Box3d _arrowSpawnBox;
             private Box3d _hurtBox;
 
@@ -489,8 +461,9 @@ namespace WarcraftPlugin.Classes
             private void HurtPlayersInside()
             {
                 //Find players within area
-                var players = Utilities.GetPlayers();
-                var playersInHurtZone = players.Where(x => {
+                var players = PlayerCache.GetPlayers();
+                var playersInHurtZone = players.Where(x =>
+                {
                     if (!x.IsAlive() || x.AllyOf(Owner)) return false;
                     var pawn = x.PlayerPawn?.Value;
                     return pawn != null && _hurtBox.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
@@ -499,11 +472,11 @@ namespace WarcraftPlugin.Classes
                 //Set movement speed + small hurt
                 foreach (var player in playersInHurtZone)
                 {
-                    var pawn = player.PlayerPawn.Value;
+                    var pawn = player.PlayerPawn?.Value;
                     if (pawn == null) continue;
 
                     player.TakeDamage(4, Owner, KillFeedIcon.flair0);
-                    pawn.VelocityModifier = 0;
+                    new ArrowStormSlowEffect(Owner, player, 0.35f).Start();
                     Warcraft.SpawnParticle(player.CalculatePositionInFront(10, 60), "particles/blood_impact/blood_impact_basic.vpcf");
                 }
             }
@@ -513,8 +486,8 @@ namespace WarcraftPlugin.Classes
                 //Calculate new arrow pos
                 var arrowSpawn = _arrowSpawnBox.GetRandomPoint();
                 //Spawn arrow
-                var arrow = Utilities.CreateEntityByName<CHEGrenadeProjectile>("hegrenade_projectile");
-                if (!arrow.IsValid) return;
+                var arrow = Warcraft.CreateEntityByNameSafe<CHEGrenadeProjectile>("hegrenade_projectile");
+                if (arrow == null) return;
                 arrow.Teleport(arrowSpawn, new QAngle(z: -90), new Vector());
                 arrow.DispatchSpawn();
                 WarcraftPlugin.Instance.DebugSetModel("[Ranger] ArrowStorm", arrow, "models/tools/bullet_hit_marker.vmdl");
@@ -526,13 +499,37 @@ namespace WarcraftPlugin.Classes
                 arrow.Collision.SolidFlags = 12;
                 arrow.Collision.SolidType = SolidType_t.SOLID_VPHYSICS;
 
-                Schema.SetSchemaValue(arrow.Handle, "CBaseGrenade", "m_hThrower", Owner.PlayerPawn.Raw); //Fixes killfeed
+                if (Owner.PlayerPawn != null)
+                {
+                    Schema.SetSchemaValue(arrow.Handle, "CBaseGrenade", "m_hThrower", Owner.PlayerPawn.Raw); //Fixes killfeed
+                }
 
                 //Cleanup
                 WarcraftPlugin.Instance.AddTimer(0.6f, () => { arrow?.RemoveIfValid(); });
             }
 
             public override void OnFinish() { }
+        }
+
+        internal sealed class ArrowStormSlowEffect(CCSPlayerController owner, CCSPlayerController victim, float duration)
+            : WarcraftEffect(owner, duration, destroyOnDeath: false, onTickInterval: 1f)
+        {
+            private readonly CCSPlayerController _victim = victim;
+
+            public override void OnStart()
+            {
+                if (!_victim.TryGetAlivePawn(out _)) return;
+                SetVelocityMultiplier(_victim, 0f, "arrowstorm");
+                RefreshPlayerState(_victim);
+            }
+
+            public override void OnTick() { }
+
+            public override void OnFinish()
+            {
+                RemoveStateContributions(_victim, "arrowstorm");
+                RefreshPlayerState(_victim);
+            }
         }
     }
 }

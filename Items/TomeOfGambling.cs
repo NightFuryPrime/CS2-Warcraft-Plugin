@@ -21,9 +21,10 @@ internal class TomeOfGambling : ShopItem
 
     internal override void Apply(CCSPlayerController player)
     {
-        var xpGain = RandomProvider.Next(MinXpGain, MaxXpGain);
+        var min = Math.Min(MinXpGain, MaxXpGain);
+        var max = Math.Max(MinXpGain, MaxXpGain);
+        var xpGain = RandomProvider.Next(min, max + 1);
         WarcraftPlugin.Instance.XpSystem.AddXp(player, xpGain);
         player.PrintToChat($" {ChatColors.Gold}+{xpGain} XP{ChatColors.Default}");
-        WarcraftPlugin.Instance.SavePlayerProgress(player);
     }
 }

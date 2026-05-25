@@ -3,6 +3,7 @@ using Vector = CounterStrikeSharp.API.Modules.Utils.Vector;
 using CounterStrikeSharp.API.Modules.Utils;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
+using WarcraftPlugin.Core;
 using System.Drawing;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Core.Effects.Shared;
@@ -15,6 +16,8 @@ namespace WarcraftPlugin.Classes
 {
     internal partial class Shadowblade : WarcraftClass
     {
+        private const string CloakSpeedKey = "shadowblade-cloak";
+        internal const string VenomSourceKey = "shadowblade";
         public override string DisplayName => "Shadowblade";
         public override DefaultClassModel DefaultModel => new()
         {
@@ -24,13 +27,15 @@ namespace WarcraftPlugin.Classes
 
         public override Color DefaultColor => Color.Violet;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Shadowstep", "4/8/12/16/20% chance to teleport behind the attacker when taking damage."),
             new WarcraftAbility("Evasion", "6/12/18/24/30% chance to completely dodge incoming damage."),
             new WarcraftAbility("Venom Strike", "Your attacks poison enemies, dealing 1/2/3/4/5 damage per second for 4s."),
             new WarcraftCooldownAbility("Cloak of Shadows", "Turn invisible and move faster for 6s", 40f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private const float _venomDuration = 4f;
         private readonly float _cloakDuration = 6f;
@@ -55,9 +60,11 @@ namespace WarcraftPlugin.Classes
                 attacker?.PrintToChat(" " + Localizer["shadowblade.evaded", Player.GetRealPlayerName()]);
 
                 @event.IgnoreDamage();
-                Player.PlayerPawn.Value.EmitSound("BulletBy.Subsonic", volume: 0.2f);
+                if (!TryGetAlivePawn(out var pawn)) return;
+
+                pawn.EmitSound("BulletBy.Subsonic", volume: 0.2f);
                 var particle = Warcraft.SpawnParticle(Player.EyePosition(-50), "particles/explosions_fx/explosion_hegrenade_dirt_ground.vpcf");
-                particle.SetParent(Player.PlayerPawn.Value);
+                particle?.SetParent(pawn);
 
                 return;
             }
@@ -84,7 +91,7 @@ namespace WarcraftPlugin.Classes
             {
                 var activeEffects = WarcraftPlugin.Instance.EffectManager
                     .GetEffectsByType<VenomStrikeEffect>()
-                    .Where(x => x.Victim.Handle == victim.Handle && x.Owner?.Handle == Player.Handle)
+                    .Where(x => x.Matches(Player, victim, VenomSourceKey))
                     .ToList();
 
                 if (activeEffects.Any())
@@ -96,7 +103,7 @@ namespace WarcraftPlugin.Classes
                 }
                 else
                 {
-                    new VenomStrikeEffect(Player, victim, _venomDuration, venomLevel).Start();
+                    new VenomStrikeEffect(Player, victim, _venomDuration, venomLevel, VenomSourceKey).Start();
                 }
             }
         }
@@ -125,11 +132,19 @@ namespace WarcraftPlugin.Classes
         }
     }
 
-    internal class VenomStrikeEffect(CCSPlayerController owner, CCSPlayerController victim, float duration, int damage) : WarcraftEffect(owner, duration, destroyOnDeath: false, onTickInterval: 1f)
+    internal class VenomStrikeEffect(CCSPlayerController owner, CCSPlayerController victim, float duration, int damage, string sourceKey = Shadowblade.VenomSourceKey) : WarcraftEffect(owner, duration, destroyOnDeath: false, onTickInterval: 1f)
     {
         public CCSPlayerController Victim = victim;
+        internal string SourceKey { get; } = sourceKey;
         private int _damage = damage;
         private int _totalDamage;
+
+        internal bool Matches(CCSPlayerController owner, CCSPlayerController victim, string sourceKey)
+        {
+            return Owner?.Handle == owner?.Handle &&
+                   Victim?.Handle == victim?.Handle &&
+                   string.Equals(SourceKey, sourceKey, StringComparison.Ordinal);
+        }
 
         private bool IsVictimValid(out CCSPlayerPawn victimPawn)
         {
@@ -201,7 +216,7 @@ namespace WarcraftPlugin.Classes
         private bool TryShadowstepTeleport(CCSPlayerController attacker)
         {
             var attackerPawn = attacker.PlayerPawn?.Value;
-            if (attackerPawn == null) return false;
+            if (attackerPawn == null || !TryGetAlivePawn(out var playerPawn)) return false;
 
             foreach (var (distance, offset) in ShadowstepOffsets)
             {
@@ -211,11 +226,11 @@ namespace WarcraftPlugin.Classes
                     continue;
                 }
 
-                Player.PlayerPawn.Value.Teleport(candidate, attackerPawn.GetEyeAngles(), Vector.Zero);
-                Warcraft.SpawnParticle(Player.PlayerPawn.Value.AbsOrigin, "particles/survival_fx/danger_zone_loop_black.vpcf", 2);
-                Player.PlayerPawn.Value.EmitSound("UI.PlayerPingUrgent", volume: 0.2f);
+                playerPawn.Teleport(candidate, attackerPawn.GetEyeAngles(), Vector.Zero);
+                Warcraft.SpawnParticle(playerPawn.AbsOrigin, "particles/survival_fx/danger_zone_loop_black.vpcf", 2);
+                playerPawn.EmitSound("UI.PlayerPingUrgent", volume: 0.2f);
 
-            var chance = WarcraftPlayer.GetAbilityLevel(0) * 4;
+                var chance = WarcraftPlayer.GetAbilityLevel(0) * 4;
                 Player.PrintToChat(" " + Localizer["shadowblade.shadowstep.chance", chance]);
                 return true;
             }
@@ -271,19 +286,21 @@ namespace WarcraftPlugin.Classes
                 duration,
                 onStart: () =>
                 {
-                    if (!Player.IsAlive()) return;
+                    if (!Player.TryGetAlivePawn(out var pawn)) return;
                     Player.PrintToCenter(Localizer["rogue.invsible"]);
                     Player.PrintToChat(" " + Localizer["shadowblade.cloak.active", 100]);
-                    Player.PlayerPawn.Value.SetColor(Color.FromArgb(0, 255, 255, 255));
+                    pawn.SetColor(Color.FromArgb(0, 255, 255, 255));
                     Player.AdrenalineSurgeEffect(duration);
-                    Player.PlayerPawn.Value.VelocityModifier = 2f;
+                    DerivedPlayerStateManager.SetVelocityMultiplier(Player, CloakSpeedKey, 2f);
+                    DerivedPlayerStateManager.RefreshDerivedPlayerState(Player);
                 },
                 onFinish: () =>
                 {
+                    DerivedPlayerStateManager.RemoveContribution(Player, CloakSpeedKey);
+                    DerivedPlayerStateManager.RefreshDerivedPlayerState(Player);
                     if (!Player.IsAlive()) return;
                     Player.GetWarcraftPlayer().GetClass().SetDefaultAppearance();
                     Player.PrintToCenter(Localizer["rogue.visible"]);
-                    Player.PlayerPawn.Value.VelocityModifier = 1f;
                 });
         }
     }

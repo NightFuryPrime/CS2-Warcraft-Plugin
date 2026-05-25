@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Core.Effects.Shared;
 using WarcraftPlugin.Events.ExtendedEvents;
@@ -15,18 +16,21 @@ namespace WarcraftPlugin.Classes
 {
     internal class Hammerstorm : WarcraftClass
     {
+        private const string WarcrySpeedKey = "hammerstorm-warcry";
         private bool _godStrength;
         private int _godStrengthDamage;
         public override string DisplayName => "Hammerstorm";
         public override Color DefaultColor => Color.Gold;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Storm Bolt", "25% chance to stun enemies near your target."),
             new WarcraftAbility("Great Cleave", "25% chance to splash damage to nearby enemies."),
             new WarcraftAbility("Warcry", "Gain bonus health and movement speed."),
             new WarcraftCooldownAbility("Gods Strength", "Increase damage by 25% for 6s", 15f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -53,8 +57,13 @@ namespace WarcraftPlugin.Classes
                     var healthBonus = 10 + (level - 1) * 5; //10/15/20/25/30
                     Player.SetHp(pawn.Health + healthBonus);
                     speed += 0.06f + (level * 0.03f);
+                    SetVelocityAdditive(WarcrySpeedKey, speed - 1f);
                 }
-                pawn.VelocityModifier = speed;
+                else
+                {
+                    RemoveDerivedContribution(WarcrySpeedKey);
+                }
+                RefreshDerivedPlayerState();
             });
         }
 
@@ -71,7 +80,7 @@ namespace WarcraftPlugin.Classes
             {
                 var radius = 50 + 10 * stormLevel;
                 var stunned = 0;
-                foreach (var enemy in Utilities.GetPlayers().Where(x => x.PawnIsAlive && x.Team != Player.Team))
+                foreach (var enemy in PlayerCache.GetPlayers().Where(x => x.PawnIsAlive && x.Team != Player.Team))
                 {
                     var enemyPawn = enemy.PlayerPawn?.Value;
                     var victimPawn = victim.PlayerPawn?.Value;
@@ -93,7 +102,7 @@ namespace WarcraftPlugin.Classes
                 if (victimPawnForParticle != null)
                 {
                     var particle = Warcraft.SpawnParticle(victim.EyePosition(-20), "particles/ui/ui_experience_award_innerpoint.vpcf", 1);
-                    particle.SetParent(victimPawnForParticle);
+                    particle?.SetParent(victimPawnForParticle);
                 }
             }
 
@@ -103,7 +112,7 @@ namespace WarcraftPlugin.Classes
                 var splashPct = 0.1f + 0.05f * cleaveLevel;
                 var radius = 150;
                 float totalBonus = 0;
-                foreach (var enemy in Utilities.GetPlayers().Where(x => x.PawnIsAlive && x.Team != Player.Team && x.UserId != victim.UserId))
+                foreach (var enemy in PlayerCache.GetPlayers().Where(x => x.PawnIsAlive && x.Team != Player.Team && x.UserId != victim.UserId))
                 {
                     var enemyPawn = enemy.PlayerPawn?.Value;
                     var victimPawn = victim.PlayerPawn?.Value;
@@ -127,7 +136,7 @@ namespace WarcraftPlugin.Classes
                 if (victimPawnForParticle != null)
                 {
                     var particle = Warcraft.SpawnParticle(victim.EyePosition(-20), "particles/explosions_fx/explosion_hegrenade_water_ripple.vpcf", 1);
-                    particle.SetParent(victimPawnForParticle);
+                    particle?.SetParent(victimPawnForParticle);
                 }
             }
 
@@ -159,13 +168,13 @@ namespace WarcraftPlugin.Classes
             {
                 _class._godStrength = true;
                 _class._godStrengthDamage = 0;
-                Owner.Blind(Duration-3, Color.FromArgb(50, 255, 20, 0));
+                Owner.Blind(Duration - 3, Color.FromArgb(50, 255, 20, 0));
 
                 var ownerPawn = Owner.PlayerPawn?.Value;
                 if (ownerPawn != null)
                 {
                     _particle = Warcraft.SpawnParticle(Owner.EyePosition(-20), "particles/maps/de_dust/dust_burning_engine_fire_glow.vpcf", Duration);
-                    _particle.SetParent(ownerPawn);
+                    _particle?.SetParent(ownerPawn);
                 }
             }
 

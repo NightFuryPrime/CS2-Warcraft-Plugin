@@ -6,6 +6,7 @@ using CounterStrikeSharp.API;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using System.Collections.Generic;
 using WarcraftPlugin.Events.ExtendedEvents;
@@ -24,13 +25,15 @@ namespace WarcraftPlugin.Classes
             "models/anubis/structures/pillar02_base01.vmdl"
         ];
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Fireball", "Infuses molotovs with fire magic, causing a huge explosion on impact (40/80/120/160/200 damage)."),
             new WarcraftAbility("Ice Beam", "5/10/15/20/25% chance to freeze enemies in place."),
             new WarcraftAbility("Mana Shield", "Regenerates 1 armor every 5/2.5/1.7/1.3/1s."),
             new WarcraftCooldownAbility("Arcane Dash", "Dash rapidly in the direction you're aiming.", 20f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private static readonly float[] ManaShieldIntervals = [0f, 5f, 2.5f, 1.7f, 1.3f, 1f];
         private const string FireballCustomName = "Fireball";
@@ -132,7 +135,7 @@ namespace WarcraftPlugin.Classes
                 molotov.SetColor(Color.OrangeRed);
 
                 var particle = Warcraft.SpawnParticle(molotov.AbsOrigin, "particles/inferno_fx/molotov_fire01.vpcf");
-                particle.SetParent(molotov);
+                particle?.SetParent(molotov);
 
                 Vector velocity = Player.CalculateVelocityAwayFromPlayer(1800);
                 molotov.Teleport(Player.CalculatePositionInFront(10, 60), molotov.AbsRotation, velocity);
@@ -148,7 +151,7 @@ namespace WarcraftPlugin.Classes
             var baseDamage = abilityLevel * 40f;
             var radius = abilityLevel * 100f;
             var origin = new Vector(@event.X, @event.Y, @event.Z);
-            var enemies = Utilities.GetPlayers()
+            var enemies = PlayerCache.GetPlayers()
                 .Where(x => x.IsAlive() && !x.AllyOf(Player))
                 .ToList();
 
@@ -228,17 +231,19 @@ namespace WarcraftPlugin.Classes
     {
         public override void OnStart()
         {
+            if (!target.TryGetAlivePawn(out var targetPawn)) return;
             target.PrintToChat(" " + Localizer["mage.frozen"]);
-            var targetPlayerModel = target.PlayerPawn.Value;
-
-            targetPlayerModel.VelocityModifier = targetPlayerModel.VelocityModifier / 2;
+            SetVelocityMultiplier(target, 0.5f, "freeze");
+            RefreshPlayerState(target);
 
             Warcraft.DrawLaserBetween(Owner.EyePosition(-10), target.EyePosition(-10), Color.Cyan);
-            targetPlayerModel.SetColor(Color.Cyan);
+            targetPawn.SetColor(Color.Cyan);
         }
         public override void OnTick() { }
         public override void OnFinish()
         {
+            RemoveStateContributions(target, "freeze");
+            RefreshPlayerState(target);
             if (target.IsValid && target.PawnIsAlive)
             {
                 target.PlayerPawn.Value.SetColor(Color.White);

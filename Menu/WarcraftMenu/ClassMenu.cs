@@ -71,7 +71,7 @@ namespace WarcraftPlugin.Menu.WarcraftMenu
                 var isCurrentClass = string.Equals(wcPlayer.className, warClassInformation.InternalName, StringComparison.OrdinalIgnoreCase);
                 // Check if the class is locked based on total levels required
                 var requiredTotal = warClassInformation.TotalLevelRequired;
-                var isLocked = requiredTotal > 0 && requiredTotal > totalLevels;
+                var isLocked = IsClassLocked(requiredTotal, totalLevels);
                 var classDisplayColor = isLocked || isCurrentClass ? Color.Gray.Name : "white";
 
                 var sb = new System.Text.StringBuilder();
@@ -103,7 +103,9 @@ namespace WarcraftPlugin.Menu.WarcraftMenu
 
                         if (!player.PawnIsAlive)
                         {
-                            _ = plugin.ChangeClass(player, classInternalName);
+                            plugin.FireAndForget(
+                                plugin.ChangeClass(player, classInternalName),
+                                $"class-menu-change:{player.PlayerName}->{classInternalName}");
                         }
                         else
                         {
@@ -145,6 +147,11 @@ namespace WarcraftPlugin.Menu.WarcraftMenu
 
             // Return the new interpolated color
             return Color.FromArgb(r, g, b);
+        }
+
+        internal static bool IsClassLocked(int requiredTotal, int totalLevels)
+        {
+            return requiredTotal > 0 && requiredTotal > totalLevels;
         }
     }
 

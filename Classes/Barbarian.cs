@@ -6,6 +6,7 @@ using CounterStrikeSharp.API.Modules.Memory;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
 using System.Drawing;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using System.Collections.Generic;
 using WarcraftPlugin.Events.ExtendedEvents;
@@ -31,13 +32,15 @@ namespace WarcraftPlugin.Classes
 
         public override Color DefaultColor => Color.Brown;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Carnage", "Deal an extra 5/10/15/20/25 damage with shotguns."),
             new WarcraftAbility("Battle-Hardened", "Increase your health by 20/40/60/80/100."),
             new WarcraftAbility("Throwing Axe", "Chance to throw an exploding barrel when firing (around 3–13% per shot depending on weapon)."),
             new WarcraftCooldownAbility("Bloodlust", "For 10s gain infinite ammo, 30% more speed and constant health regen.", 50f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private readonly int _battleHardenedHealthMultiplier = 20;
         private readonly float _bloodlustLength = 10;
@@ -79,10 +82,12 @@ namespace WarcraftPlugin.Classes
             {
                 Server.NextFrame(() =>
                 {
-                    if (!Player.IsAlive()) return;
-                    Player.SetHp(100 + WarcraftPlayer.GetAbilityLevel(1) * _battleHardenedHealthMultiplier);
-                    var pawn = Player.PlayerPawn.Value;
-                    if (pawn != null) pawn.MaxHealth = pawn.Health;
+                    if (!TryGetAlivePawn(out var pawn)) return;
+
+                    var healthBonus = WarcraftPlayer.GetAbilityLevel(1) * _battleHardenedHealthMultiplier;
+                    SetMaxHealthBonus("barbarian-battle-hardened", healthBonus);
+                    RefreshDerivedPlayerState();
+                    Player.SetHp(pawn.MaxHealth);
                 });
             }
         }
@@ -105,10 +110,14 @@ namespace WarcraftPlugin.Classes
 
             var carnageLevel = WarcraftPlayer.GetAbilityLevel(0);
 
-            if (carnageLevel > 0 && WeaponTypes.Shotguns.Contains(@event.Weapon))
+            if (carnageLevel > 0 && WeaponTypes.IsShotgun(@event.Weapon))
             {
                 @event.AddBonusDamage(carnageLevel * 5, abilityName: GetAbility(0).DisplayName);
-                Warcraft.SpawnParticle(victim.PlayerPawn.Value.AbsOrigin.With(z: victim.PlayerPawn.Value.AbsOrigin.Z + 60), "particles/blood_impact/blood_impact_basic.vpcf");
+                var victimPawn = victim.PlayerPawn?.Value;
+                if (victimPawn != null)
+                {
+                    Warcraft.SpawnParticle(victimPawn.AbsOrigin.With(z: victimPawn.AbsOrigin.Z + 60), "particles/blood_impact/blood_impact_basic.vpcf");
+                }
                 victim.EmitSound("Flesh.ImpactHard", volume: 0.5f);
             }
         }
@@ -127,7 +136,7 @@ namespace WarcraftPlugin.Classes
             var pawn = Owner?.PlayerPawn?.Value;
             if (pawn == null) { Destroy(); return; }
 
-            _throwingAxe = Utilities.CreateEntityByName<CHEGrenadeProjectile>("hegrenade_projectile");
+            _throwingAxe = Warcraft.CreateEntityByNameSafe<CHEGrenadeProjectile>("hegrenade_projectile");
             if (_throwingAxe == null) { Destroy(); return; }
 
             Vector velocity = Owner.CalculateVelocityAwayFromPlayer(1800);
@@ -230,7 +239,7 @@ namespace WarcraftPlugin.Classes
                 Warcraft.SpawnParticle(origin, "particles/explosions_fx/explosion_hegrenade_brief.vpcf");
                 Warcraft.EmitSound(attacker, "BaseGrenade.Explode");
 
-                var victims = Utilities.GetPlayers().Where(p =>
+                var victims = PlayerCache.GetPlayers().Where(p =>
                     p.IsAlive() &&
                     !p.AllyOf(attacker) &&
                     p.PlayerPawn?.Value != null &&
@@ -266,14 +275,11 @@ namespace WarcraftPlugin.Classes
 
         public override void OnStart()
         {
-            if (!Owner.IsAlive()) return;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
             Owner.AdrenalineSurgeEffect(Duration);
-            var pawn = Owner.PlayerPawn.Value;
-            if (pawn != null)
-            {
-                pawn.VelocityModifier = 1.3f;
-                pawn.SetColor(Color.IndianRed);
-            }
+            SetVelocityMultiplier(Owner, 1.3f);
+            RefreshPlayerState(Owner);
+            pawn.SetColor(Color.IndianRed);
             Owner.EmitSound("BaseGrenade.JumpThrowM", volume: 0.5f);
         }
 
@@ -308,11 +314,11 @@ namespace WarcraftPlugin.Classes
 
         public override void OnFinish()
         {
-            if (!Owner.IsAlive()) return;
+            RemoveStateContributions(Owner);
+            RefreshPlayerState(Owner);
 
-            var pawn = Owner.PlayerPawn.Value;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
             pawn.SetColor(Color.White);
-            pawn.VelocityModifier = 1f;
             pawn.SetScale(1);
         }
     }

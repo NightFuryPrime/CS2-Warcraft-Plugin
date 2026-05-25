@@ -73,14 +73,13 @@ namespace WarcraftPlugin.Models
 
         private float _killFeedIconTick;
         private KillFeedIcon? _killFeedIcon;
-        public float LastHurtOther { get; set; } = 0;
-
         public abstract void Register();
 
         public virtual void OnPlayerSpawned() { }
 
         public virtual void PlayerChangingToAnotherRace()
         {
+            DerivedPlayerStateManager.ResetPlayer(Player);
             if (Player?.IsValid != true || Player.PlayerPawn?.Value == null) return;
 
             Player.PlayerPawn.Value.SetScale(1);
@@ -126,6 +125,45 @@ namespace WarcraftPlugin.Models
 
             WarcraftPlugin.Instance?.DebugLog($"RunWhenPawnReady executing for {Player?.PlayerName} after {attempt} attempts");
             action();
+        }
+
+        protected bool TryGetAlivePawn(out CCSPlayerPawn pawn) => Player.TryGetAlivePawn(out pawn);
+
+        protected bool TryGetActiveWeapon(out CBasePlayerWeapon weapon) => Player.TryGetActiveWeapon(out weapon);
+
+        protected void SetVelocityMultiplier(string key, float multiplier)
+        {
+            DerivedPlayerStateManager.SetVelocityMultiplier(Player, key, multiplier);
+        }
+
+        protected void SetVelocityAdditive(string key, float additive)
+        {
+            DerivedPlayerStateManager.SetVelocityAdditive(Player, key, additive);
+        }
+
+        protected void SetGravityMultiplier(string key, float multiplier)
+        {
+            DerivedPlayerStateManager.SetGravityMultiplier(Player, key, multiplier);
+        }
+
+        protected void SetGravityAdditive(string key, float additive)
+        {
+            DerivedPlayerStateManager.SetGravityAdditive(Player, key, additive);
+        }
+
+        protected void SetMaxHealthBonus(string key, int bonus)
+        {
+            DerivedPlayerStateManager.SetMaxHealthBonus(Player, key, bonus);
+        }
+
+        protected void RemoveDerivedContribution(string key)
+        {
+            DerivedPlayerStateManager.RemoveContribution(Player, key);
+        }
+
+        protected void RefreshDerivedPlayerState(bool resetBaseline = false)
+        {
+            DerivedPlayerStateManager.RefreshDerivedPlayerState(Player, resetBaseline);
         }
 
         private static Color GenerateShade(Color baseColor, int shadeIndex)

@@ -10,6 +10,7 @@ namespace WarcraftPlugin.Items;
 
 internal class DaggerOfVenom : ShopItem
 {
+    internal const string VenomSourceKey = "item:dagger_of_venom";
     protected override string Name => "Dagger of Venom";
     protected override FormattableString Description => $"Poison enemies on hit";
     internal override int Price { get; set; } = 2500;
@@ -28,12 +29,20 @@ internal class DaggerOfVenom : ShopItem
         if (@event.Userid == null || !@event.Userid.IsAlive()) return;
 
         var effectManager = WarcraftPlugin.Instance.EffectManager;
-        var isVictimPoisoned = effectManager.GetEffectsByType<VenomStrikeEffect>()
-            .Any(x => x.Victim.Handle == @event.Userid.Handle);
+        var activeEffects = effectManager.GetEffectsByType<VenomStrikeEffect>()
+            .Where(x => x.Matches(@event.Attacker, @event.Userid, VenomSourceKey))
+            .ToList();
 
-        if (!isVictimPoisoned)
+        if (activeEffects.Count > 0)
         {
-            new VenomStrikeEffect(@event.Attacker, @event.Userid, PoisonDuration, PoisonDamage).Start();
+            foreach (var effect in activeEffects)
+            {
+                effect.Refresh(PoisonDuration, PoisonDamage);
+            }
+        }
+        else
+        {
+            new VenomStrikeEffect(@event.Attacker, @event.Userid, PoisonDuration, PoisonDamage, VenomSourceKey).Start();
         }
     }
 }

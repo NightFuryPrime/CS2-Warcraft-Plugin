@@ -29,13 +29,15 @@ namespace WarcraftPlugin.Classes
 
         public override Color DefaultColor => Color.FromArgb(0, 100, 255); //Diamond blue
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Build", "Allows you to build using the builder tool with 3/6/9/12/15 charges."),
             new WarcraftAbility("Pickaxe", "6/12/18/24/30% chance to find grenades when stabbing surfaces."),
             new WarcraftAbility("Stone Skin", "Increase armor by 20/40/60/80/100."),
             new WarcraftCooldownAbility("Goldrush!", "Gain 1000 HP and a speed boost for 10s", 50f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -50,12 +52,13 @@ namespace WarcraftPlugin.Classes
 
         private void PlayerItemEquip(EventItemEquip equip)
         {
-            var pawn = Player?.PlayerPawn?.Value;
-            if (pawn == null) return;
+            if (Player == null || !Player.TryGetActiveWeapon(out var activeWeapon))
+            {
+                _buildEffect?.Destroy();
+                return;
+            }
 
-            var activeWeapon = pawn.WeaponServices?.ActiveWeapon?.Value;
-
-            if (activeWeapon != null && activeWeapon.IsValid && activeWeapon.AttributeManager.Item.CustomName == "Build Tool")
+            if (activeWeapon.GetCustomNameSafe() == Localizer["dwarf_engineer.buildtool"])
             {
                 _buildEffect = new BuildEffect(Player);
                 _buildEffect.Start();
@@ -69,29 +72,40 @@ namespace WarcraftPlugin.Classes
         private void PlayerShoot(EventWeaponFire @event)
         {
             var pawn = Player?.PlayerPawn?.Value;
-            if (pawn == null) return;
+            if (Player == null || !Player.IsValid || pawn == null || !pawn.IsValid || !Player.PawnIsAlive) return;
 
             var activeWeapon = pawn.WeaponServices?.ActiveWeapon?.Value;
+            if (activeWeapon == null || !activeWeapon.IsValid) return;
 
-            if (activeWeapon != null && activeWeapon.IsValid)
+            var customName = activeWeapon.AttributeManager?.Item?.CustomName;
+
+            // Mining: chance to find grenades when stabbing surfaces
+            if (WarcraftPlayer.GetAbilityLevel(1) > 0 &&
+                activeWeapon.DesignerName.Equals("weapon_knife", StringComparison.OrdinalIgnoreCase))
             {
-                //Mining: Chance to find grenades when stabbing surfaces
-                if (WarcraftPlayer.GetAbilityLevel(1) > 0 && activeWeapon.DesignerName == "weapon_knife")
-                {
-                    Pickaxe();
-                }
+                Pickaxe();
+            }
 
-                if (activeWeapon.AttributeManager.Item.CustomName == "Build Tool")
-                {
-                    _buildEffect?.SpawnProp();
-                }
+            if (customName == Localizer["dwarf_engineer.buildtool"])
+            {
+                _buildEffect?.SpawnProp();
             }
         }
 
         private void Pickaxe()
         {
+            if (Player == null || !Player.IsValid || !Player.PawnIsAlive)
+                return;
+
             var trace = Player.RayTrace();
-            var isCloseToMineableWall = (trace - Player.EyePosition()).Length() < 71;
+            if (trace == null)
+                return;
+
+            var eyePosition = Player.EyePosition();
+            if (eyePosition == null)
+                return;
+
+            var isCloseToMineableWall = (trace - eyePosition).Length() < 71;
 
             if (isCloseToMineableWall)
             {
@@ -117,8 +131,12 @@ namespace WarcraftPlugin.Classes
                 {
                     Player.RemoveWeaponBySlot(gear_slot_t.GEAR_SLOT_PISTOL);
                     var builderTool = Player.GiveWeapon<CWeaponFiveSeven>("weapon_fiveseven");
-                    if (builderTool != null) {
-                        builderTool.AttributeManager.Item.CustomName = Localizer["dwarf_engineer.buildtool"];
+                    if (builderTool != null)
+                    {
+                        if (builderTool.AttributeManager?.Item != null)
+                        {
+                            builderTool.AttributeManager.Item.CustomName = Localizer["dwarf_engineer.buildtool"];
+                        }
                         builderTool.Clip1 = buildLevel * 3;
                         builderTool.ReserveAmmo.Clear();
                         builderTool.SetColor(Color.Red);
@@ -129,9 +147,13 @@ namespace WarcraftPlugin.Classes
                 if (WarcraftPlayer.GetAbilityLevel(1) > 0)
                 {
                     var pickaxe = Player.GetWeaponBySlot(gear_slot_t.GEAR_SLOT_KNIFE);
-                    if (pickaxe != null) {
+                    if (pickaxe != null)
+                    {
                         pickaxe.SetColor(Color.FromArgb(0, 100, 255));
-                        pickaxe.AttributeManager.Item.CustomName = Localizer["dwarf_engineer.pickaxe"];
+                        if (pickaxe.AttributeManager?.Item != null)
+                        {
+                            pickaxe.AttributeManager.Item.CustomName = Localizer["dwarf_engineer.pickaxe"];
+                        }
                     }
                 }
 
@@ -207,9 +229,16 @@ namespace WarcraftPlugin.Classes
                 if (pawn == null || pawn.WeaponServices == null) { Destroy(); return; }
 
                 // Workaround to spawn grenade, prevent pickup for a moment
+                CCSWeaponBaseGun weaponDrop;
                 pawn.WeaponServices.PreventWeaponPickup = true;
-                var weaponDrop = Owner.GiveWeapon<CCSWeaponBaseGun>(grenadeName);
-                pawn.WeaponServices.PreventWeaponPickup = false;
+                try
+                {
+                    weaponDrop = Owner.GiveWeapon<CCSWeaponBaseGun>(grenadeName);
+                }
+                finally
+                {
+                    pawn.WeaponServices.PreventWeaponPickup = false;
+                }
 
                 if (weaponDrop == null) { Destroy(); return; }
                 weaponDrop.CanBePickedUp = false;
@@ -221,14 +250,16 @@ namespace WarcraftPlugin.Classes
             else
             {
                 // Hide the weapon drop and show junk instead
-                _weaponDropEntity = Utilities.CreateEntityByName<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+                _weaponDropEntity = Warcraft.CreateEntityByNameSafe<CPhysicsPropMultiplayer>("prop_physics_multiplayer");
+                if (_weaponDropEntity == null) { Destroy(); return; }
                 _weaponDropEntity.DispatchSpawn();
                 WarcraftPlugin.Instance.DebugSetModel("[DwarfEngineer] WeaponDrop", _weaponDropEntity, "models/food/fruits/banana01a.vmdl");
                 _weaponDropEntity.SetModel("models/food/fruits/banana01a.vmdl");
                 _weaponDropEntity.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_WEAPON;
                 _weaponDropEntity.SetColor(Color.FromArgb(0, 0, 0, 0)); // Make it invisible
 
-                _junkProp = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic_override");
+                _junkProp = Warcraft.CreateEntityByNameSafe<CDynamicProp>("prop_dynamic_override");
+                if (_junkProp == null) { Destroy(); return; }
                 _junkProp.DispatchSpawn();
                 WarcraftPlugin.Instance.DebugSetModel("[DwarfEngineer] JunkProp", _junkProp, "models/props/de_aztec/hr_aztec/aztec_walls/aztec_ground_rock_01_rock_01.vmdl");
                 _junkProp.SetModel("models/props/de_aztec/hr_aztec/aztec_walls/aztec_ground_rock_01_rock_01.vmdl");
@@ -239,6 +270,9 @@ namespace WarcraftPlugin.Classes
 
             Server.NextFrame(() =>
             {
+                if (_weaponDropEntity == null || !_weaponDropEntity.IsValid || Owner?.IsValid != true || !Owner.TryGetAlivePawn(out _))
+                    return;
+
                 _weaponDropEntity.Teleport(trace, new QAngle(
                 RandomProvider.NextFloat() * 360f,
                 RandomProvider.NextFloat() * 360f,
@@ -249,13 +283,15 @@ namespace WarcraftPlugin.Classes
 
         public override void OnTick()
         {
-            if (!_weaponDropEntity.IsValid) { this.Destroy(); return; }
+            if (_weaponDropEntity == null || !_weaponDropEntity.IsValid) { this.Destroy(); return; }
             if (success)
             {
-                (_weaponDropEntity as CCSWeaponBaseGun).CanBePickedUp = true;
+                if (_weaponDropEntity is CCSWeaponBaseGun gun)
+                    gun.CanBePickedUp = true;
             }
             else
             {
+                if (_junkProp == null || !_junkProp.IsValid) { Destroy(); return; }
                 _junkProp.SetColor(Color.FromArgb(
                     Math.Max(0, _junkProp.Render.A - (int)(255 / Duration)),
                     _junkProp.Render.R,
@@ -316,14 +352,15 @@ namespace WarcraftPlugin.Classes
 
             Server.NextFrame(() =>
             {
-                if (Owner.IsValid) {
+                if (Owner.IsValid)
+                {
                     Owner.PrintToChat(" " + Localizer["dwarf_engineer.build.tooltip"]);
                 }
             });
 
             var currentDef = Props[_currentPropIndex];
 
-            _blueprintProp = Utilities.CreateEntityByName<CPhysicsPropOverride>("prop_physics_override");
+            _blueprintProp = Warcraft.CreateEntityByNameSafe<CPhysicsPropOverride>("prop_physics_override");
             if (_blueprintProp == null) { Destroy(); return; }
 
             _blueprintProp.Teleport(BlueprintPosition(), pawn.GetEyeAngles(), new Vector());
@@ -338,9 +375,10 @@ namespace WarcraftPlugin.Classes
         public override void OnTick()
         {
             if (!Owner.IsValid || !Owner.PawnIsAlive) return;
+            if (_blueprintProp == null || !_blueprintProp.IsValid) { Destroy(); return; }
 
             Vector velocity = Warcraft.CalculateTravelVelocity(_blueprintProp.AbsOrigin, BlueprintPosition(), 0.1f);
-            var pawn = Owner.PlayerPawn.Value;
+            if (!Owner.TryGetAlivePawn(out var pawn)) { Destroy(); return; }
             var eyeAngles = pawn.GetEyeAngles();
             var currentDef = Props[_currentPropIndex];
             QAngle rotation = new(eyeAngles.X + currentDef.RotationOffset.X, eyeAngles.Y + _yawOffset + currentDef.RotationOffset.Y, eyeAngles.Z + currentDef.RotationOffset.Z);
@@ -364,8 +402,7 @@ namespace WarcraftPlugin.Classes
                 _yawOffset += 20;
             }
 
-            var activeWeapon = Owner.PlayerPawn.Value.WeaponServices?.ActiveWeapon.Value;
-            if (activeWeapon == null || !activeWeapon.IsValid || activeWeapon.AttributeManager.Item.CustomName != "Build Tool")
+            if (!Owner.TryGetActiveWeapon(out var activeWeapon) || activeWeapon.GetCustomNameSafe() != Localizer["dwarf_engineer.buildtool"])
                 Destroy();
         }
 
@@ -380,7 +417,10 @@ namespace WarcraftPlugin.Classes
             _currentPropIndex = (_currentPropIndex + 1) % Props.Count;
             WarcraftPlugin.Instance.DebugSetModel("[DwarfEngineer] BlueprintNext", _blueprintProp, Props[_currentPropIndex].ModelPath);
             _blueprintProp.SetModel(Props[_currentPropIndex].ModelPath);
-            _blueprintProp.Teleport(BlueprintPosition(), Owner.PlayerPawn.Value.GetEyeAngles(), new Vector());
+            if (Owner.TryGetAlivePawn(out var pawn))
+            {
+                _blueprintProp.Teleport(BlueprintPosition(), pawn.GetEyeAngles(), new Vector());
+            }
         }
 
         public void SpawnProp()
@@ -390,7 +430,8 @@ namespace WarcraftPlugin.Classes
                 if (_blueprintProp == null || !_blueprintProp.IsValid) return;
                 var currentDef = Props[_currentPropIndex];
 
-                var prop = Utilities.CreateEntityByName<CPhysicsPropOverride>("prop_physics_override");
+                var prop = Warcraft.CreateEntityByNameSafe<CPhysicsPropOverride>("prop_physics_override");
+                if (prop == null) return;
                 prop.DispatchSpawn();
                 prop.Teleport(_blueprintProp.AbsOrigin, _blueprintProp.AbsRotation);
                 WarcraftPlugin.Instance.DebugSetModel("[DwarfEngineer] SpawnProp", prop, currentDef.ModelPath);
@@ -403,6 +444,8 @@ namespace WarcraftPlugin.Classes
 
                 Server.NextWorldUpdate(() =>
                 {
+                    if (prop == null || !prop.IsValid) return;
+
                     prop.Collision.CollisionAttribute.InteractsAs = 136446081;
                     prop.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_PUSHAWAY;
                     var propHealth = prop.CollisionBox().Volume / PropHealthScalingFactor;
@@ -415,7 +458,9 @@ namespace WarcraftPlugin.Classes
 
         private Vector BlueprintPosition()
         {
-            var pawn = Owner.PlayerPawn.Value;
+            if (!Owner.TryGetAlivePawn(out var pawn))
+                return new Vector();
+
             Vector pos = pawn.AbsOrigin.Clone();
             Vector forward = new(), right = new(), up = new();
 
@@ -440,9 +485,10 @@ namespace WarcraftPlugin.Classes
     {
         public override void OnStart()
         {
-            Warcraft.SpawnParticle(Owner.PlayerPawn.Value.AbsOrigin, "particles/explosions_fx/bumpmine_detonate_distort.vpcf", 1);
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
+            Warcraft.SpawnParticle(pawn.AbsOrigin, "particles/explosions_fx/bumpmine_detonate_distort.vpcf", 1);
             Owner.AdrenalineSurgeEffect(Duration);
-            Owner.PlayerPawn.Value.SetColor(Color.Gold);
+            pawn.SetColor(Color.Gold);
             Owner.EmitSound("BaseGrenade.JumpThrowM", volume: 0.5f);
             Owner.SetHp(healthBonus);
             Owner.Blind(Duration - 5, Color.FromArgb(50, 255, 255, 0));
@@ -455,9 +501,7 @@ namespace WarcraftPlugin.Classes
 
         public override void OnFinish()
         {
-            if (!Owner.IsAlive()) return;
-
-            var pawn = Owner.PlayerPawn.Value;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
             Owner.GetWarcraftPlayer().GetClass().SetDefaultAppearance();
             Owner.Unblind();
             Owner.SetHp(pawn.MaxHealth);

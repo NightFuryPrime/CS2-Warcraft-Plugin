@@ -27,7 +27,10 @@ namespace WarcraftPlugin.Events
         private readonly WarcraftPlugin _plugin;
         private readonly Config _config;
         private readonly List<GameAction> _gameActions = [];
+        private readonly Dictionary<uint, CCSPlayerController> _radarPlayerLookup = [];
+        private readonly HurtOtherDeduper _hurtOtherDeduper = new();
         private Timer? _playerSpottedTimer;
+        private bool _hasRadarSpotListeners;
         private bool _weaponAcquireHooked;
         private bool _disposed;
 
@@ -85,6 +88,11 @@ namespace WarcraftPlugin.Events
             {
                 foreach (var gameAction in warcraftClass.GetEventListeners())
                 {
+                    if (gameAction.EventType == typeof(EventSpottedEnemy) || gameAction.EventType == typeof(EventSpottedByEnemy))
+                    {
+                        _hasRadarSpotListeners = true;
+                    }
+
                     if (!CanAddGameAction(gameAction.EventType, gameAction.HookMode)) continue;
 
                     var handlerMethod = typeof(EventSystem).GetMethod(
@@ -120,7 +128,10 @@ namespace WarcraftPlugin.Events
             else
             {
                 // Else Invoke global events on all players
-                Utilities.GetPlayers().ForEach(p => { p.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, hookMode); });
+                foreach (var player in PlayerCache.GetPlayers())
+                {
+                    player.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, hookMode);
+                }
             }
             return HookResult.Continue;
         }
@@ -154,8 +165,16 @@ namespace WarcraftPlugin.Events
 
         private void PlayerSpottedOnRadar()
         {
-            var players = Utilities.GetPlayers();
-            var playerDictionary = players.ToDictionary(player => player.Index);
+            if (!_hasRadarSpotListeners)
+                return;
+
+            var players = PlayerCache.GetPlayers();
+            _radarPlayerLookup.Clear();
+
+            foreach (var player in players)
+            {
+                _radarPlayerLookup[player.Index] = player;
+            }
 
             foreach (var spottedPlayer in players)
             {
@@ -175,7 +194,7 @@ namespace WarcraftPlugin.Events
                     {
                         int playerIndex = baseId + BitOperations.TrailingZeroCount(mask) + 1; // Offset by 1 to match the 1-based index
 
-                        if (playerDictionary.TryGetValue((uint)playerIndex, out var spottedByPlayer) && spottedByPlayer.IsAlive())
+                        if (_radarPlayerLookup.TryGetValue((uint)playerIndex, out var spottedByPlayer) && spottedByPlayer.IsAlive())
                         {
                             var spottedPlayerClass = spottedPlayer.GetWarcraftPlayer()?.GetClass();
                             var spottedByPlayerClass = spottedByPlayer.GetWarcraftPlayer()?.GetClass();
@@ -197,11 +216,11 @@ namespace WarcraftPlugin.Events
 
         private HookResult RoundEnd(EventRoundEnd @event, GameEventInfo info)
         {
-            Utilities.GetPlayers().ForEach(p =>
+            foreach (var p in PlayerCache.GetPlayers())
             {
                 WarcraftPlugin.Instance.EffectManager.DestroyEffects(p, EffectDestroyFlags.OnRoundEnd);
                 p.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, HookMode.Pre);
-            });
+            }
 
             var winnerProp = @event.GetType().GetProperty("Winner");
             if (winnerProp != null)
@@ -215,24 +234,21 @@ namespace WarcraftPlugin.Events
 
                 if (teamWinner is CsTeam.Terrorist or CsTeam.CounterTerrorist)
                 {
-                    foreach (var player in Utilities.GetPlayers().Where(p => p.Team == teamWinner && !p.ControllingBot))
+                    foreach (var player in PlayerCache.GetPlayers().Where(p => p.Team == teamWinner && !p.ControllingBot))
                     {
                         _plugin.XpSystem.AddXp(player, (int)_config.XpPerRoundWin);
                         player.PrintToChat(_plugin.Localizer["xp.roundwin", _config.XpPerRoundWin]);
                     }
                 }
-
-                foreach (var player in Utilities.GetPlayers().Where(p => p.IsValid && !p.ControllingBot))
-                {
-                    WarcraftPlugin.Instance.SavePlayerProgress(player);
-                }
             }
+
+            _plugin.QueueDirtyPlayerFlush("round-end");
             return HookResult.Continue;
         }
 
         private HookResult RoundStart(EventRoundStart @event, GameEventInfo info)
         {
-            Utilities.GetPlayers().Where(x => !x.IsBot && !x.ControllingBot).ToList().ForEach(player =>
+            foreach (var player in PlayerCache.GetPlayers().Where(x => !x.IsBot && !x.ControllingBot))
             {
                 var warcraftPlayer = player.GetWarcraftPlayer();
                 var warcraftClass = warcraftPlayer?.GetClass();
@@ -241,10 +257,10 @@ namespace WarcraftPlugin.Events
                 {
                     warcraftClass?.InvokeEvent(@event, HookMode.Pre);
 
-                if (AbilityProgression.GetFreeSkillPoints(warcraftPlayer) > 0)
-                {
-                    SkillsMenu.Show(warcraftPlayer);
-                }
+                    if (AbilityProgression.GetFreeSkillPoints(warcraftPlayer) > 0)
+                    {
+                        SkillsMenu.Show(warcraftPlayer);
+                    }
                     else
                     {
                         var message = $"{warcraftClass.LocalizedDisplayName} ({warcraftPlayer.currentLevel})\n" +
@@ -278,7 +294,7 @@ namespace WarcraftPlugin.Events
                         AbilityBenefitAnnouncer.SendRoundSummary(player, warcraftPlayer);
                     }
                 }
-            });
+            }
             return HookResult.Continue;
         }
 
@@ -287,19 +303,15 @@ namespace WarcraftPlugin.Events
             var victim = @event.Userid;
             var attacker = @event.Attacker;
 
-            if (victim != null && (!victim.IsAlive())) return HookResult.Continue;
-
             var attackingClass = attacker?.GetWarcraftPlayer()?.GetClass();
 
-            if (attackingClass != null)
+            if (attackingClass != null && attacker?.IsValid == true && victim?.IsValid == true)
             {
                 if (attackingClass.GetKillFeedTick() != Server.CurrentTime)
                     attackingClass.ResetKillFeedIcon();
 
-                //Prevent shotguns, etc from triggering multiple hurt other events
-                if (attackingClass?.LastHurtOther != Server.CurrentTime)
+                if (_hurtOtherDeduper.ShouldProcess(attacker.Handle, victim.Handle, @event.Weapon, Server.CurrentTime))
                 {
-                    attackingClass.LastHurtOther = Server.CurrentTime;
                     var hurtOtherEvent = new EventPlayerHurtOther(@event.Handle);
                     attackingClass.InvokeEvent(hurtOtherEvent, HookMode.Pre);
 
@@ -308,8 +320,11 @@ namespace WarcraftPlugin.Events
                 }
             }
 
-            victim?.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, HookMode.Pre);
-            ItemManager.OnPlayerHurt(@event);
+            if (victim?.IsValid == true)
+            {
+                victim.GetWarcraftPlayer()?.GetClass()?.InvokeEvent(@event, HookMode.Pre);
+                ItemManager.OnPlayerHurt(@event);
+            }
 
             return HookResult.Continue;
         }
@@ -326,9 +341,14 @@ namespace WarcraftPlugin.Events
                 if (warcraftPlayer.DesiredClass != null && warcraftPlayer.DesiredClass != warcraftClass?.InternalName)
                 {
                     WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnChangingRace);
+                    WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnSpawn);
+                    DerivedPlayerStateManager.ResetPlayer(player);
                     _ = HandleSpawnClassChangeAsync(player, warcraftPlayer.DesiredClass);
                     return HookResult.Continue;
                 }
+
+                WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnSpawn);
+                DerivedPlayerStateManager.ResetPlayer(player);
 
                 if (player.Team is CsTeam.Terrorist or CsTeam.CounterTerrorist)
                     warcraftClass?.InvokeEvent(@event, HookMode.Pre);
@@ -362,6 +382,9 @@ namespace WarcraftPlugin.Events
                 {
                     if (player == null || !player.IsValid)
                         return;
+
+                    WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnSpawn);
+                    DerivedPlayerStateManager.ResetPlayer(player);
 
                     var refreshedPlayer = player.GetWarcraftPlayer();
                     var refreshedClass = refreshedPlayer?.GetClass();
@@ -397,9 +420,9 @@ namespace WarcraftPlugin.Events
             var headshot = @event.Headshot;
             var assister = @event.Assister;
 
-            if (attacker == null || victim == null) return HookResult.Continue;
+            if (victim == null) return HookResult.Continue;
 
-            if (attacker.IsValid && victim.IsValid && attacker != victim && attacker.PlayerPawn.IsValid && attacker.PawnIsAlive && !attacker.ControllingBot)
+            if (attacker != null && attacker.IsValid && victim.IsValid && attacker != victim && attacker.PlayerPawn.IsValid && attacker.PawnIsAlive && !attacker.ControllingBot)
             {
                 var killerClass = attacker.GetWarcraftPlayer()?.GetClass();
                 var killEvent = new EventPlayerKilledOther(@event.Handle);
@@ -416,14 +439,14 @@ namespace WarcraftPlugin.Events
                     );
             }
 
-            if (_config.XpPerAssist > 0 && assister != null && assister.IsValid && assister != attacker && assister != victim && !assister.AllyOf(victim) && assister.AllyOf(attacker))
+            if (_config.XpPerAssist > 0 && attacker != null && assister != null && assister.IsValid && assister != attacker && assister != victim && !assister.AllyOf(victim) && assister.AllyOf(attacker))
             {
                 _plugin.XpSystem.AddXpWithMessage(assister, _config.XpPerAssist, "xp.assist", victim.PlayerName);
             }
 
-            if (victim.IsValid && attacker.IsValid)
+            if (victim.IsValid)
             {
-                var attackerClass = attacker.GetWarcraftPlayer()?.GetClass();
+                var attackerClass = attacker?.IsValid == true ? attacker.GetWarcraftPlayer()?.GetClass() : null;
                 var victimClass = victim.GetWarcraftPlayer()?.GetClass();
                 WarcraftPlugin.Instance.EffectManager.DestroyEffects(victim, EffectDestroyFlags.OnDeath);
                 victimClass?.InvokeEvent(@event, HookMode.Pre);
@@ -436,7 +459,9 @@ namespace WarcraftPlugin.Events
             if (victimWarcraft?.DesiredClass != null && victimWarcraft.DesiredClass != victimWarcraft.className)
             {
                 WarcraftPlugin.Instance.EffectManager.DestroyEffects(victim, EffectDestroyFlags.OnChangingRace);
-                _ = WarcraftPlugin.Instance.ChangeClass(victim, victimWarcraft.DesiredClass);
+                _plugin.FireAndForget(
+                    WarcraftPlugin.Instance.ChangeClass(victim, victimWarcraft.DesiredClass),
+                    $"death-class-change:{victim.PlayerName}->{victimWarcraft.DesiredClass}");
                 // We don't need to wait for this on death usually.
             }
 
@@ -449,9 +474,15 @@ namespace WarcraftPlugin.Events
             if (player != null && player.IsValid)
             {
                 var mockDeathEvent = new EventPlayerDeath(0) { Userid = @event.Userid };
-                var warcraftPlayer = player?.GetWarcraftPlayer()?.GetClass();
+                var warcraftClass = player.GetWarcraftPlayer()?.GetClass();
                 WarcraftPlugin.Instance.EffectManager.DestroyEffects(player, EffectDestroyFlags.OnDisconnect);
-                warcraftPlayer?.InvokeEvent(mockDeathEvent, HookMode.Pre);
+                warcraftClass?.InvokeEvent(mockDeathEvent, HookMode.Pre);
+
+                if (!player.IsBot && PlayerProgressSnapshot.TryCreate(player, out var snapshot))
+                {
+                    WarcraftPlugin.Instance.MarkPlayerProgressDirty(snapshot, "disconnect");
+                    WarcraftPlugin.Instance.QueueDirtyPlayerFlush(snapshot.SteamId, "disconnect");
+                }
             }
             return HookResult.Continue;
         }

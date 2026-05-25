@@ -13,18 +13,21 @@ namespace WarcraftPlugin.Classes
 {
     internal class Rogue : WarcraftClass
     {
+        private const string BladeDanceSpeedKey = "rogue-blade-dance";
         private bool _isPlayerInvulnerable;
 
         public override string DisplayName => "Rogue";
         public override Color DefaultColor => Color.DarkViolet;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Stealth", "Become partially invisible for 1/2/3/4/5 seconds, when killing someone."),
             new WarcraftAbility("Sneak Attack", "When you hit an enemy in the back, you do an aditional 5/10/15/20/25 damage."),
             new WarcraftAbility("Blade Dance", "Knifing grants 12/24/36/48/60 bonus damage and up to 10-50% more speed."),
             new WarcraftCooldownAbility("Smokebomb", "When nearing death, you will automatically drop a smokebomb, letting you cheat death.", 50f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -39,6 +42,8 @@ namespace WarcraftPlugin.Classes
         public override void OnPlayerSpawned()
         {
             _isPlayerInvulnerable = false;
+            RemoveDerivedContribution(BladeDanceSpeedKey);
+            RefreshDerivedPlayerState();
             Player.Speed = 1;
         }
 
@@ -48,6 +53,7 @@ namespace WarcraftPlugin.Classes
         {
             if (_isPlayerInvulnerable)
             {
+                @event.IgnoreDamage();
                 Player.SetHp(1);
                 return;
             }
@@ -57,10 +63,11 @@ namespace WarcraftPlugin.Classes
             var pawn = Player.PlayerPawn?.Value;
             if (pawn == null) return;
 
-            if (pawn.Health < 0)
+            if (pawn.Health <= 0)
             {
                 StartCooldown(3);
                 _isPlayerInvulnerable = true;
+                @event.IgnoreDamage();
                 Player.SetHp(1);
                 Player.Speed = 0;
                 TriggerInvisibility(5);
@@ -72,7 +79,7 @@ namespace WarcraftPlugin.Classes
                 Player.ExecuteClientCommand("slot3"); //pull out knife
 
                 var smokeEffect = Warcraft.SpawnParticle(pawn.AbsOrigin.Clone().Add(z: 90), "particles/maps/de_house/house_fireplace.vpcf");
-                smokeEffect.SetParent(pawn);
+                smokeEffect?.SetParent(pawn);
 
                 WarcraftPlugin.Instance.AddTimer(2f, () =>
                 {
@@ -85,22 +92,23 @@ namespace WarcraftPlugin.Classes
 
         private void PlayerItemEquip(EventItemEquip @event)
         {
-            var pawn = Player.PlayerPawn?.Value;
-            if (pawn == null) return;
-
-            var weaponServices = pawn.WeaponServices;
-            var activeWeapon = weaponServices?.ActiveWeapon?.Value;
-            if (activeWeapon == null) return;
-
-            var activeWeaponName = activeWeapon.DesignerName;
-            if (activeWeaponName == "weapon_knife")
+            if (!TryGetActiveWeapon(out var activeWeapon))
             {
-                pawn.VelocityModifier = 1 + 0.1f * WarcraftPlayer.GetAbilityLevel(2);
+                RemoveDerivedContribution(BladeDanceSpeedKey);
+                RefreshDerivedPlayerState();
+                return;
+            }
+
+            if (activeWeapon.DesignerName == "weapon_knife")
+            {
+                SetVelocityAdditive(BladeDanceSpeedKey, 0.1f * WarcraftPlayer.GetAbilityLevel(2));
             }
             else
             {
-                pawn.VelocityModifier = 1;
+                RemoveDerivedContribution(BladeDanceSpeedKey);
             }
+
+            RefreshDerivedPlayerState();
         }
 
         private void SetInvisible()
@@ -147,7 +155,7 @@ namespace WarcraftPlugin.Classes
             var attackerAngle = attackerPawn.GetEyeAngles().Y;
             var victimAngle = victimPawn.GetEyeAngles().Y;
 
-            if (Math.Abs(attackerAngle - victimAngle) <= 50)
+            if (Geometry.AngleDeltaDegrees(attackerAngle, victimAngle) <= 50)
             {
                 var damageBonus = WarcraftPlayer.GetAbilityLevel(1) * 5;
                 eventPlayerHurt.AddBonusDamage(damageBonus, abilityName: GetAbility(1).DisplayName);

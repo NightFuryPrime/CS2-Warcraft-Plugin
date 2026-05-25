@@ -43,7 +43,19 @@ namespace WarcraftPlugin.Core
             if (Server.CurrentTime < _nextThinkTime) return;
             _nextThinkTime = Server.CurrentTime + 0.25f;
 
-            foreach (var bot in Utilities.GetPlayers().Where(p => p.IsBot && !p.ControllingBot && p.PawnIsAlive))
+            var players = PlayerCache.GetPlayers();
+            var bots = players.Where(p => p.IsBot && !p.ControllingBot && p.PawnIsAlive).ToList();
+
+            if (_nextBotEvaluation.Count > bots.Count)
+            {
+                var liveBotHandles = bots.Select(bot => bot.Handle).ToHashSet();
+                foreach (var staleHandle in _nextBotEvaluation.Keys.Where(handle => !liveBotHandles.Contains(handle)).ToList())
+                {
+                    _nextBotEvaluation.Remove(staleHandle);
+                }
+            }
+
+            foreach (var bot in bots)
             {
                 if (!ShouldEvaluate(bot)) continue;
 
@@ -125,7 +137,7 @@ namespace WarcraftPlugin.Core
             var rangeSq = range * range;
             var best = rangeSq;
 
-            foreach (var candidate in Utilities.GetPlayers())
+            foreach (var candidate in PlayerCache.GetPlayers())
             {
                 if (!candidate.IsAlive() || candidate.Team == bot.Team || candidate.Handle == bot.Handle) continue;
                 var candidatePawn = candidate.PlayerPawn?.Value;
@@ -193,7 +205,7 @@ namespace WarcraftPlugin.Core
 
         private bool TryRevive(CCSPlayerController bot, WarcraftClass cls)
         {
-            if (Utilities.GetPlayers().Any(p => p.Team == bot.Team && !p.PawnIsAlive && p.IsValid))
+            if (PlayerCache.GetPlayers().Any(p => p.Team == bot.Team && !p.PawnIsAlive && p.IsValid))
             {
                 cls.InvokeAbility(WarcraftPlayer.UltimateAbilityIndex);
                 DelayNextDecision(bot, 8f);

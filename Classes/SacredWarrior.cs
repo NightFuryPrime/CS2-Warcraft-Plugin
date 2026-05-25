@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Events.ExtendedEvents;
 using WarcraftPlugin.Helpers;
@@ -17,13 +18,15 @@ namespace WarcraftPlugin.Classes
         public override string DisplayName => "Sacred Warrior";
         public override Color DefaultColor => Color.Orange;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Inner Vitality", "Passively recover 1/2/3/4/5 HP. When below 40% you heal twice as fast"),
             new WarcraftAbility("Burning Spear", "Lose 5% max HP, but set enemies ablaze. Deals 1/2/3/4/5 DPS for 3 seconds. Stacks 3 times"),
             new WarcraftAbility("Berserkers Blood", "Gain 1/2/3/4% move speed for each 7 percent of your health missing"),
             new WarcraftCooldownAbility("Life Break", "Damage yourself (20% of max HP) to deal a great amount of damage (40% of victim's max HP)", 40f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -100,20 +103,24 @@ namespace WarcraftPlugin.Classes
             var trace = Player.RayTrace();
             if (trace == null) return;
 
-            var target = Utilities.GetPlayers()
+            var target = PlayerCache.GetPlayers()
                 .Where(p => p.PawnIsAlive && !p.AllyOf(Player))
-                .OrderBy(p => (p.PlayerPawn.Value.AbsOrigin - trace).Length())
-                .FirstOrDefault(p => p.PlayerPawn.Value.CollisionBox().Contains(trace) ||
-                                     (p.PlayerPawn.Value.AbsOrigin - trace).Length() <= 50);
-            if (target == null) {
+                .Select(p => new { Player = p, Pawn = p.PlayerPawn?.Value })
+                .Where(x => x.Pawn != null && x.Pawn.IsValid)
+                .OrderBy(x => (x.Pawn.AbsOrigin - trace).Length())
+                .FirstOrDefault(x => x.Pawn.CollisionBox().Contains(trace) ||
+                                     (x.Pawn.AbsOrigin - trace).Length() <= 50);
+            if (target == null)
+            {
                 Player.PrintToChat($" {Localizer["effect.no.target", GetAbility(3).DisplayName]}");
                 return;
             }
 
-            var pawn = Player.PlayerPawn.Value;
-            if (pawn == null) return;
+            if (!TryGetAlivePawn(out var pawn)) return;
+            var targetPlayer = target.Player;
+            if (!targetPlayer.TryGetAlivePawn(out var targetPawn)) return;
             var selfDamage = (int)(pawn.MaxHealth * 0.2f);
-            var damage = (int)(target.PlayerPawn.Value.MaxHealth * 0.4f);
+            var damage = (int)(targetPawn.MaxHealth * 0.4f);
 
             if (pawn.Health <= selfDamage)
             {
@@ -121,33 +128,26 @@ namespace WarcraftPlugin.Classes
                 return;
             }
 
-            var targetHealthBefore = target.PlayerPawn.Value.Health;
+            var targetHealthBefore = targetPawn.Health;
             var playerHealthBefore = pawn.Health;
 
-            target.TakeDamage(damage, Player, KillFeedIcon.inferno);
+            targetPlayer.TakeDamage(damage, Player, KillFeedIcon.inferno);
             Player.SetHp(pawn.Health - selfDamage);
 
             var dealt = Math.Min(damage, targetHealthBefore);
             var self = Math.Min(selfDamage, playerHealthBefore);
 
-            var targetPawn = target.PlayerPawn?.Value;
-            if (targetPawn != null)
-            {
-                Warcraft.DrawLaserBetween(Player.EyePosition(-10), target.EyePosition(-10), Color.DarkOrange);
-                Warcraft.SpawnParticle(targetPawn.AbsOrigin, "particles/explosions_fx/explosion_hegrenade.vpcf", 1);
-            }
-            if (pawn != null)
-            {
-                Warcraft.SpawnParticle(pawn.AbsOrigin, "particles/inferno_fx/firework_crate_ground_low_02.vpcf", 1);
-            }
+            Warcraft.DrawLaserBetween(Player.EyePosition(-10), targetPlayer.EyePosition(-10), Color.DarkOrange);
+            Warcraft.SpawnParticle(targetPawn.AbsOrigin, "particles/explosions_fx/explosion_hegrenade.vpcf", 1);
+            Warcraft.SpawnParticle(pawn.AbsOrigin, "particles/inferno_fx/firework_crate_ground_low_02.vpcf", 1);
             Player.PrintToChat($" {ChatColors.Green}Life Break dealt {dealt} damage and cost {self} HP.");
-            target.PrintToChat($" {ChatColors.Red}Life Break hit you for {dealt} damage.");
+            targetPlayer.PrintToChat($" {ChatColors.Red}Life Break hit you for {dealt} damage.");
             StartCooldown(3);
         }
     }
 
     // Heal should occur every 3 seconds instead of every second
-    internal class InnerVitalityEffect(CCSPlayerController owner, int abilityLevel) : WarcraftEffect(owner, destroyOnDeath: true, onTickInterval:3f)
+    internal class InnerVitalityEffect(CCSPlayerController owner, int abilityLevel) : WarcraftEffect(owner, destroyOnDeath: true, onTickInterval: 3f)
     {
         public override void OnStart() { }
         public override void OnTick()
@@ -167,7 +167,7 @@ namespace WarcraftPlugin.Classes
     }
 
     internal class BurningSpearEffect(CCSPlayerController owner, CCSPlayerController victim, float duration, int damage, int stack)
-        : WarcraftEffect(owner, duration, destroyOnDeath: false, onTickInterval:1f)
+        : WarcraftEffect(owner, duration, destroyOnDeath: false, onTickInterval: 1f)
     {
         public CCSPlayerController Victim = victim;
         private CParticleSystem _particle;
@@ -186,7 +186,7 @@ namespace WarcraftPlugin.Classes
                 if (victimPawn != null)
                 {
                     _particle = Warcraft.SpawnParticle(victimPawn.AbsOrigin, "particles/burning_fx/barrel_burning_engine_fire_static.vpcf", Duration);
-                    _particle.SetParent(victimPawn);
+                    _particle?.SetParent(victimPawn);
                 }
             }
         }
@@ -212,35 +212,23 @@ namespace WarcraftPlugin.Classes
         }
     }
 
-    internal class BerserkersBloodEffect(CCSPlayerController owner, int level) : WarcraftEffect(owner, destroyOnDeath: true, onTickInterval:0.5f)
+    internal class BerserkersBloodEffect(CCSPlayerController owner, int level) : WarcraftEffect(owner, destroyOnDeath: true, onTickInterval: 0.5f)
     {
-        private float _baseModifier = 1f;
-        public override void OnStart()
-        {
-            if (Owner.IsAlive())
-            {
-                _baseModifier = Owner.PlayerPawn.Value.VelocityModifier;
-            }
-        }
+        public override void OnStart() { }
         public override void OnTick()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn?.Value;
-            if (pawn == null) return;
+            if (!TryGetAliveOwnerPawn(out var pawn)) return;
 
             float missing = (pawn.MaxHealth - pawn.Health) / (float)pawn.MaxHealth;
             float stacks = missing / 0.07f;
-            float speed = _baseModifier * (1f + level * 0.01f * stacks);
-            pawn.VelocityModifier = speed;
+            float speed = 1f + level * 0.01f * stacks;
+            SetVelocityMultiplier(Owner, speed, "berserk");
+            RefreshPlayerState(Owner);
         }
         public override void OnFinish()
         {
-            if (!Owner.IsAlive()) return;
-            var pawn = Owner.PlayerPawn?.Value;
-            if (pawn != null)
-            {
-                pawn.VelocityModifier = _baseModifier;
-            }
+            RemoveStateContributions(Owner, "berserk");
+            RefreshPlayerState(Owner);
         }
     }
 }

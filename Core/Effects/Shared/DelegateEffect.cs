@@ -44,7 +44,7 @@ namespace WarcraftPlugin.Core.Effects.Shared
             bool destroyOnSpawn,
             bool finishOnDestroy,
             float onTickInterval)
-            : base(owner, duration, destroyOnDeath, destroyOnRoundEnd, destroyOnChangingRace, destroyOnDisconnect, destroyOnSpawn, finishOnDestroy, onTickInterval)
+            : base(owner, duration, destroyOnDeath, destroyOnRoundEnd, destroyOnChangingRace, destroyOnDisconnect, destroyOnSpawn, finishOnDestroy, onTick == null ? 0f : onTickInterval)
         {
             _onStart = onStart;
             _onTick = onTick;

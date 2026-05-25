@@ -9,7 +9,7 @@ namespace WarcraftPlugin.Items;
 internal class MaskOfDeath : ShopItem
 {
     protected override string Name => "Mask of Death";
-    protected override FormattableString Description => $"{LifeStealChance*100}% Chance to Heal {LifeStealPercent*100}% of Weapon Damage dealt";
+    protected override FormattableString Description => $"{LifeStealChance * 100}% Chance to Heal {LifeStealPercent * 100}% of Weapon Damage dealt";
     internal override int Price { get; set; } = 4000;
     internal override Color Color { get; set; } = Color.FromArgb(255, 220, 20, 60); // Crimson for lifesteal/offensive
 
@@ -26,7 +26,7 @@ internal class MaskOfDeath : ShopItem
 
         if (Warcraft.RollChance((float)(LifeStealChance * 100)))
         {
-            var pawn = @event.Attacker.PlayerPawn.Value;
+            if (!@event.Attacker.TryGetAlivePawn(out var pawn)) return;
             var heal = (int)Math.Ceiling(@event.DmgHealth * LifeStealPercent);
             var newHp = Math.Min(pawn.Health + heal, pawn.MaxHealth);
             @event.Attacker.SetHp((int)newHp);

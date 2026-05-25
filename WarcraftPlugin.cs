@@ -32,7 +32,7 @@ namespace WarcraftPlugin
 {
     public class Config : BasePluginConfig
     {
-        [JsonPropertyName("ConfigVersion")] public override int Version { get; set; } = 10;
+        [JsonPropertyName("ConfigVersion")] public override int Version { get; set; } = 11;
         [JsonPropertyName("DeactivatedClasses")] public string[] DeactivatedClasses { get; set; } = [];
         [JsonPropertyName("ShowCommandAdverts")] public bool ShowCommandAdverts { get; set; } = true;
         [JsonPropertyName("DefaultClass")] public string DefaultClass { get; set; } = "ranger";
@@ -46,6 +46,7 @@ namespace WarcraftPlugin
         [JsonPropertyName("XpPerBombDefuse")] public int XpPerBombDefuse { get; set; } = 20;
         [JsonPropertyName("EnableLevelDifferenceXp")] public bool EnableLevelDifferenceXp { get; set; } = true;
         [JsonPropertyName("MatchReset")] public bool MatchReset { get; set; } = false;
+        [JsonPropertyName("SaveIntervalSeconds")] public int SaveIntervalSeconds { get; set; } = 120;
         [JsonPropertyName("MaxInventoryItems")] public int MaxInventoryItems { get; set; } = 2;
         [JsonPropertyName("EnableBotUltimates")] public bool EnableBotUltimates { get; set; } = true;
         [JsonPropertyName("TotalLevelRequired")]
@@ -76,7 +77,7 @@ namespace WarcraftPlugin
         public static WarcraftPlugin Instance => _instance;
 
         public override string ModuleName => "Warcraft";
-        public override string ModuleVersion => "4.0.6";
+        public override string ModuleVersion => "4.1.0";
 
         public const int MaxLevel = 16;
         public const int MaxSkillLevel = 5;
@@ -135,7 +136,7 @@ namespace WarcraftPlugin
 
             var wcPlayer = new WarcraftPlayer(player);
             wcPlayer.LoadClassInformation(info, XpSystem);
-            XpSystem.AutoSpendSkillPoints(wcPlayer);
+            AbilityProgression.AutoSpendSkillPoints(wcPlayer);
             return wcPlayer;
         }
 
@@ -165,6 +166,7 @@ namespace WarcraftPlugin
         public override void Load(bool hotReload)
         {
             base.Load(hotReload);
+            _instance = this;
             PersistentLogger.Initialize(ModuleDirectory);
             PersistentLogger.Info(nameof(WarcraftPlugin), $"Loading {ModuleName} v{ModuleVersion} (hotReload={hotReload}).", mirrorConsole: true);
 
@@ -177,15 +179,16 @@ namespace WarcraftPlugin
             Localizer = LocalizerMiddleware.Load(Localizer, ModuleDirectory);
 
             MenuApi.ReloadConfig();
-
-            _instance ??= this;
+            CS2MenuManager.API.Menu.WasdMenuStateManager.RegisterEvents(this);
 
             XpSystem = new XpSystem(this, Config, Localizer);
             XpSystem.GenerateXpCurve(110, 1.07f, MaxLevel);
 
-            _database = new WarcraftDatabase();
             classManager = new ClassManager();
             classManager.Initialize(ModuleDirectory, Config);
+
+            _database = new WarcraftDatabase();
+            _database.Initialize(ModuleDirectory);
 
             EffectManager = new EffectManager();
             EffectManager.Initialize();
@@ -325,7 +328,6 @@ namespace WarcraftPlugin
 
             VolumeFix.Load();
 
-            _database.Initialize(ModuleDirectory);
         }
 
         private void AddUniqueCommand(string name, string description, CommandInfo.CommandCallback method)
@@ -341,19 +343,36 @@ namespace WarcraftPlugin
             SkillsMenu.Show(GetWcPlayer(player));
         }
 
-        private async void ShowClassMenu(CCSPlayerController player)
+        private void ShowClassMenu(CCSPlayerController player)
+        {
+            FireAndForget(ShowClassMenuAsync(player), nameof(ShowClassMenu));
+        }
+
+        private async Task ShowClassMenuAsync(CCSPlayerController player)
         {
             try
             {
                 var databaseClassInformation = await _database.LoadClassInformationFromDatabase(player);
-                ClassMenu.Show(player, databaseClassInformation);
+                Server.NextFrame(() =>
+                {
+                    if (player == null || !player.IsValid)
+                        return;
+
+                    ClassMenu.Show(player, databaseClassInformation);
+                });
             }
             catch (Exception ex)
             {
                 PersistentLogger.Error(nameof(ShowClassMenu), "Failed to load class information for the class menu.", ex);
                 Console.WriteLine($"[WarcraftPlugin] Error in ShowClassMenu: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
-                player.PrintToChat($" {ChatColors.Red}Error loading class menu. Please try again later.");
+                Server.NextFrame(() =>
+                {
+                    if (player == null || !player.IsValid)
+                        return;
+
+                    player.PrintToChat($" {ChatColors.Red}Error loading class menu. Please try again later.");
+                });
             }
         }
 
@@ -527,7 +546,15 @@ namespace WarcraftPlugin
 
         private void CommandResetSkills(CCSPlayerController client, CommandInfo commandinfo)
         {
+            if (client == null || !client.IsValid)
+                return;
+
             var wcPlayer = GetWcPlayer(client);
+            if (wcPlayer == null)
+            {
+                client.PrintToChat($" {ChatColors.Red}Warcraft profile is not loaded.");
+                return;
+            }
 
             var abilityCount = wcPlayer.GetClass().Abilities.Count;
             for (int i = 0; i < abilityCount; i++)
@@ -535,7 +562,9 @@ namespace WarcraftPlugin
                 wcPlayer.SetAbilityLevel(i, 0);
             }
 
-            if (XpSystem.GetFreeSkillPoints(wcPlayer) > 0)
+            MarkPlayerProgressDirty(client, "reset-skills");
+
+            if (AbilityProgression.GetFreeSkillPoints(wcPlayer) > 0)
             {
                 SkillsMenu.Show(wcPlayer);
             }
@@ -543,21 +572,40 @@ namespace WarcraftPlugin
 
         private void CommandFactoryReset(CCSPlayerController client, CommandInfo commandInfo)
         {
+            if (client == null || !client.IsValid)
+                return;
+
             var wcPlayer = GetWcPlayer(client);
+            if (wcPlayer == null)
+            {
+                client.PrintToChat($" {ChatColors.Red}Warcraft profile is not loaded.");
+                return;
+            }
+
             wcPlayer.currentLevel = 0;
             wcPlayer.currentXp = 0;
+            XpSystem.RecalculateXpForLevel(wcPlayer);
             CommandResetSkills(client, commandInfo);
-            client.PlayerPawn.Value.CommitSuicide(false, false);
+            MarkPlayerProgressDirty(client, "factory-reset");
+
+            if (client.TryGetAlivePawn(out _))
+            {
+                client.PlayerPawn.Value.CommitSuicide(false, false);
+            }
+            else
+            {
+                client.PrintToChat($" {ChatColors.Green}Profile reset. Respawn to continue.");
+            }
         }
 
         private void OnClientDisconnectHandler(int slot)
         {
+            PlayerCache.Invalidate();
             var player = new CCSPlayerController(NativeAPI.GetEntityFromIndex(slot + 1));
             // No bots or invalid/non-existent clients.
             if (!player.IsValid || player.IsBot) return;
 
-            // Fire and forget save
-            _ = _database.SavePlayerToDatabase(player);
+            DerivedPlayerStateManager.ResetPlayer(player);
             SetWcPlayer(player, null);
             WeaponInsuranceService.Clear(player);
         }
@@ -565,26 +613,139 @@ namespace WarcraftPlugin
         private void StartSaveClientsTimer()
         {
             _saveClientsTimer?.Kill();
-            _saveClientsTimer = AddTimer(60.0f, () => _ = SaveClientsSafeAsync(), TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
+            _saveClientsTimer = null;
+
+            if (Config.SaveIntervalSeconds <= 0)
+            {
+                PersistentLogger.Info(nameof(StartSaveClientsTimer), "Periodic autosave disabled (SaveIntervalSeconds <= 0).", mirrorConsole: true);
+                return;
+            }
+
+            _saveClientsTimer = AddTimer(
+                Config.SaveIntervalSeconds,
+                () => QueueDirtyPlayerFlush("autosave"),
+                TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
         }
 
-        private async Task SaveClientsSafeAsync()
+        private async Task FlushDirtyPlayersSafeAsync(string reason)
         {
             try
             {
-                await _database.SaveClients();
+                await _database.FlushDirtyPlayersAsync(reason);
             }
             catch (Exception ex)
             {
-                PersistentLogger.Error(nameof(SaveClientsSafeAsync), "Autosave failed.", ex);
-                Console.WriteLine($"[WarcraftPlugin] Error while saving clients: {ex.Message}");
+                PersistentLogger.Error(nameof(FlushDirtyPlayersSafeAsync), $"Dirty-player flush failed for '{reason}'.", ex);
+                Console.WriteLine($"[WarcraftPlugin] Error while flushing dirty players: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+
+        internal void QueueDirtyPlayerFlush(string reason)
+        {
+            FireAndForget(FlushDirtyPlayersSafeAsync(reason), $"dirty-flush:{reason}");
+        }
+
+        private async Task FlushDirtyPlayerSafeAsync(long steamId, string reason)
+        {
+            try
+            {
+                await _database.FlushDirtyPlayerAsync(steamId, reason);
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Error(nameof(FlushDirtyPlayerSafeAsync), $"Dirty-player flush failed for steamid={steamId} ('{reason}').", ex);
+                Console.WriteLine($"[WarcraftPlugin] Error while flushing player progress: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+
+        internal void QueueDirtyPlayerFlush(long steamId, string reason)
+        {
+            FireAndForget(FlushDirtyPlayerSafeAsync(steamId, reason), $"dirty-player-flush:{reason}:{steamId}");
+        }
+
+        internal void MarkPlayerProgressDirty(CCSPlayerController player, string reason = "progress")
+        {
+            if (player == null || !player.IsValid) return;
+            _database?.MarkPlayerDirty(player, reason);
+        }
+
+        internal void MarkPlayerProgressDirty(PlayerProgressSnapshot snapshot, string reason = "progress")
+        {
+            _database?.MarkPlayerDirty(snapshot, reason);
+        }
+
+        internal async Task FlushPlayerProgressBarrierAsync(CCSPlayerController player, string reason)
+        {
+            if (player == null || !player.IsValid || player.IsBot)
+                return;
+
+            try
+            {
+                await _database.SavePlayerToDatabase(player);
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Error(nameof(FlushPlayerProgressBarrierAsync), $"Barrier flush failed for '{player.PlayerName}' ({reason}).", ex);
+                Console.WriteLine($"[WarcraftPlugin] Error while flushing player progress barrier: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+                throw;
+            }
+        }
+
+        internal void FireAndForget(Task task, string operation)
+        {
+            if (task == null)
+                return;
+
+            _ = ObserveTaskAsync(task, operation);
+        }
+
+        private async Task ObserveTaskAsync(Task task, string operation)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Error(nameof(FireAndForget), $"Unhandled fire-and-forget failure during '{operation}'.", ex);
+                Console.WriteLine($"[WarcraftPlugin] Unhandled fire-and-forget failure during '{operation}': {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+        }
+
+        private void FlushDirtyPlayersBarrier(string reason, TimeSpan timeout)
+        {
+            if (_database == null)
+                return;
+
+            try
+            {
+                _database.FlushAllDirtyAndDrainAsync(reason, timeout).GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                PersistentLogger.Warn(
+                    nameof(FlushDirtyPlayersBarrier),
+                    $"Timed out draining dirty-player queue for '{reason}' after {timeout.TotalSeconds:F0}s. dirtyCount={_database.DirtyCount}, queueDepth={_database.PendingQueueDepth}",
+                    mirrorConsole: true);
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Error(nameof(FlushDirtyPlayersBarrier), $"Barrier flush failed for '{reason}'.", ex, mirrorConsole: true);
+                Console.WriteLine($"[WarcraftPlugin] Barrier flush failed for '{reason}': {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
             }
         }
 
         private void OnMapEndHandler()
         {
-            EffectManager.DestroyAllEffects();
+            PlayerCache.Invalidate();
+            EffectManager.DestroyAllEffects(finishEffects: true);
+            AmuletOfTheCat.ResetSilentFootstepState();
+            DerivedPlayerStateManager.ClearAll();
             WeaponInsuranceService.Reset();
             if (Config.MatchReset)
             {
@@ -592,12 +753,13 @@ namespace WarcraftPlugin
             }
             else
             {
-                _ = _database.SaveClients();
+                FlushDirtyPlayersBarrier("map-end", TimeSpan.FromSeconds(3));
             }
         }
 
         private void OnMapStartHandler(string mapName)
         {
+            PlayerCache.Invalidate();
             if (Config.MatchReset)
             {
                 _database.ResetClients();
@@ -606,10 +768,16 @@ namespace WarcraftPlugin
             WeaponInsuranceService.Reset();
         }
 
-        private async void OnClientPutInServerHandler(int slot)
+        private void OnClientPutInServerHandler(int slot)
+        {
+            FireAndForget(OnClientPutInServerAsync(slot), $"client-put-in-server:{slot}");
+        }
+
+        private async Task OnClientPutInServerAsync(int slot)
         {
             try
             {
+                PlayerCache.Invalidate();
                 var player = new CCSPlayerController(NativeAPI.GetEntityFromIndex(slot + 1));
                 Console.WriteLine($"Put in server {player.Handle}");
                 if (!player.IsValid) return;
@@ -663,7 +831,7 @@ namespace WarcraftPlugin
             try
             {
                 // 1. Save old class progress (Async, DB thread)
-                await _database.SavePlayerToDatabase(player);
+                await FlushPlayerProgressBarrierAsync(player, "class-change");
 
                 // 2. Perform game state mutations on Main Thread
                 var tcs = new TaskCompletionSource<bool>();
@@ -677,6 +845,7 @@ namespace WarcraftPlugin
                             return;
                         }
 
+                        DerivedPlayerStateManager.ResetPlayer(player);
                         EffectManager?.DestroyEffects(player, EffectDestroyFlags.OnChangingRace);
                         warcraftPlayer.GetClass()?.ResetCooldowns();
                         warcraftPlayer.GetClass()?.PlayerChangingToAnotherRace();
@@ -764,12 +933,6 @@ namespace WarcraftPlugin
             }
         }
 
-        internal void SavePlayerProgress(CCSPlayerController player)
-        {
-            if (player == null || !player.IsValid) return;
-            _ = _database?.SavePlayerToDatabase(player);
-        }
-
         internal void DebugLog(string message)
         {
             if (Config?.EnableDebugLogs != true) return;
@@ -829,13 +992,21 @@ namespace WarcraftPlugin
                 player.EnableMovement();
             }
             _eventSystem?.Dispose();
+            CS2MenuManager.API.Menu.WasdMenuStateManager.UnregisterEvents();
+            EffectManager?.Dispose();
+            AmuletOfTheCat.ResetSilentFootstepState();
+            CooldownManager?.Dispose();
             BotUltimateController?.Dispose();
             AdvertManager?.Cancel();
             _saveClientsTimer?.Kill();
-            _database?.SaveClients().GetAwaiter().GetResult();
+            FlushDirtyPlayersBarrier("unload", TimeSpan.FromSeconds(3));
             _database?.Dispose();
             VolumeFix.Unload();
             PersistentLogger.Shutdown();
+            if (ReferenceEquals(_instance, this))
+            {
+                _instance = null;
+            }
             base.Unload(hotReload);
         }
     }

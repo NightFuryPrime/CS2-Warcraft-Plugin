@@ -65,6 +65,7 @@ namespace WarcraftPlugin.Menu.WarcraftMenu
                     if (!isDisabled)
                     {
                         wcPlayer.GrantAbilityLevel(abilityIndex);
+                        plugin.MarkPlayerProgressDirty(wcPlayer.Player, "skill-menu");
                     }
                     else
                     {

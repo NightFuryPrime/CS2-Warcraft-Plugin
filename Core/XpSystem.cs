@@ -53,10 +53,14 @@ namespace WarcraftPlugin.Core
                 wcPlayer.currentXp = wcPlayer.currentXp - wcPlayer.amountToLevel;
                 GrantLevel(wcPlayer);
 
-                if (wcPlayer.GetLevel() >= WarcraftPlugin.MaxLevel) return;
+                if (wcPlayer.GetLevel() >= WarcraftPlugin.MaxLevel)
+                {
+                    _plugin.MarkPlayerProgressDirty(player, "xp-gain");
+                    return;
+                }
             }
 
-            _plugin.SavePlayerProgress(player);
+            _plugin.MarkPlayerProgressDirty(player, "xp-gain");
         }
 
         internal void AddXpWithMessage(CCSPlayerController player, int xpToAdd, string localizationKey, params object[] extraArgs)

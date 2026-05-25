@@ -1,295 +1,369 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using Dapper;
 using Microsoft.Data.Sqlite;
-using WarcraftPlugin.Models;
-using System.Threading;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using WarcraftPlugin.Diagnostics;
+using WarcraftPlugin.Helpers;
+using WarcraftPlugin.Models;
 
 namespace WarcraftPlugin.Core
 {
     internal class Database : IDisposable
     {
-        private SqliteConnection _connection;
+        private const string PlayerUpsertSql = @"
+            INSERT INTO `players` (`steamid`, `currentRace`, `name`)
+            VALUES (@steamid, @currentRace, @name)
+            ON CONFLICT(`steamid`) DO UPDATE SET
+                `currentRace` = excluded.`currentRace`,
+                `name` = excluded.`name`;";
+
+        private const string RaceUpsertSql = @"
+            INSERT INTO `raceinformation`
+                (`steamid`, `racename`, `currentXP`, `currentLevel`, `amountToLevel`,
+                 `ability1level`, `ability2level`, `ability3level`, `ability4level`)
+            VALUES
+                (@steamid, @racename, @currentXp, @currentLevel, @amountToLevel,
+                 @ability1Level, @ability2Level, @ability3Level, @ability4Level)
+            ON CONFLICT(`steamid`, `racename`) DO UPDATE SET
+                `currentXP` = excluded.`currentXP`,
+                `currentLevel` = excluded.`currentLevel`,
+                `amountToLevel` = excluded.`amountToLevel`,
+                `ability1level` = excluded.`ability1Level`,
+                `ability2level` = excluded.`ability2Level`,
+                `ability3level` = excluded.`ability3Level`,
+                `ability4level` = excluded.`ability4Level`;";
+
+        private SqliteDispatcher _dispatcher;
+        private readonly PersistenceCoordinator _persistence = new();
         private bool _disposed;
-        private readonly SemaphoreSlim _dbLock = new(1, 1);
+        private string _databasePath = string.Empty;
+
+        internal int DirtyCount => _persistence.DirtyCount;
+        internal int PendingQueueDepth => _dispatcher?.PendingCount ?? 0;
 
         internal void Initialize(string directory)
         {
-            _connection =
-                new SqliteConnection(
-                    $"Data Source={Path.Join(directory, "database.db")}");
-
-            _connection.Execute(@"
-                CREATE TABLE IF NOT EXISTS `players` (
-	                `steamid` UNSIGNED BIG INT NOT NULL,
-	                `currentRace` VARCHAR(32) NOT NULL,
-                  `name` VARCHAR(64),
-	                PRIMARY KEY (`steamid`));");
-
-            _connection.Execute(@"
-                CREATE TABLE IF NOT EXISTS `raceinformation` (
-                  `steamid` UNSIGNED BIG INT NOT NULL,
-                  `racename` VARCHAR(32) NOT NULL,
-                  `currentXP` INT NULL DEFAULT 0,
-                  `currentLevel` INT NULL DEFAULT 0,
-                  `amountToLevel` INT NULL DEFAULT 100,
-                  `ability1level` TINYINT NULL DEFAULT 0,
-                  `ability2level` TINYINT NULL DEFAULT 0,
-                  `ability3level` TINYINT NULL DEFAULT 0,
-                  `ability4level` TINYINT NULL DEFAULT 0,
-                  PRIMARY KEY (`steamid`, `racename`));
-                ");
+            _databasePath = Path.Join(directory, "database.db");
+            _dispatcher = new SqliteDispatcher($"Data Source={_databasePath}");
+            _dispatcher.ExecuteAsync("database-init", InitializeSchema).GetAwaiter().GetResult();
+            PersistentLogger.Info(nameof(Database), $"Initialized SQLite dispatcher for '{_databasePath}'.", mirrorConsole: true);
         }
 
-        internal async Task<bool> PlayerExistsInDatabase(ulong steamid)
+        internal void MarkPlayerDirty(CCSPlayerController player, string reason = "progress")
         {
-            await _dbLock.WaitAsync();
-            try
-            {
-                return await _connection.ExecuteScalarAsync<int>("select count(*) from players where steamid = @steamid",
-                    new { steamid = (long)steamid }) > 0;
-            }
-            finally
-            {
-                _dbLock.Release();
-            }
+            if (!PlayerProgressSnapshot.TryCreate(player, out var snapshot))
+                return;
+
+            MarkPlayerDirty(snapshot, reason);
         }
 
-        internal async Task AddNewPlayerToDatabase(CCSPlayerController player)
+        internal void MarkPlayerDirty(PlayerProgressSnapshot snapshot, string reason = "progress")
         {
-            var defaultClass = WarcraftPlugin.Instance.classManager.GetDefaultClass();
-            Console.WriteLine($"Adding client to database {player.SteamID}");
-            await _dbLock.WaitAsync();
-            try
+            _persistence.MarkDirty(snapshot);
+
+            if (WarcraftPlugin.Instance.Config?.EnableDebugLogs == true)
             {
-                await _connection.ExecuteAsync(@"
-            INSERT INTO players (`steamid`, `currentRace`)
-            VALUES(@steamid, @className)",
-                    new { steamid = (long)player.SteamID, className = defaultClass.InternalName });
-            }
-            finally
-            {
-                _dbLock.Release();
+                WarcraftPlugin.Instance.DebugLog($"Marked player {snapshot.SteamId} dirty for '{reason}'. dirtyCount={DirtyCount}");
             }
         }
 
         internal async Task<WarcraftPlayer> LoadPlayerFromDatabase(CCSPlayerController player, XpSystem xpSystem)
         {
-            DatabasePlayer dbPlayer;
-            long steamId = (long)player.SteamID;
-            await _dbLock.WaitAsync();
-            try
+            if (player == null || !player.IsValid || player.IsBot)
+                return null;
+
+            var steamId = (long)player.SteamID;
+            var playerName = player.GetRealPlayerName();
+            var defaultClass = WarcraftPlugin.Instance.classManager.GetDefaultClass();
+            var defaultRace = defaultClass.InternalName;
+            var initialAmountToLevel = xpSystem.GetXpForLevel(0);
+
+            if (_persistence.TryGetDirty(steamId, out var pendingDirty))
             {
-                dbPlayer = await _connection.QueryFirstOrDefaultAsync<DatabasePlayer>(@"
-            SELECT * FROM `players` WHERE `steamid` = @steamid",
-                    new { steamid = steamId });
-            }
-            finally
-            {
-                _dbLock.Release();
+                await FlushBatchAsync([pendingDirty], "connect-reconcile");
             }
 
+            var dbPlayer = await EnsurePlayerRecordAsync(steamId, playerName, defaultRace);
             if (dbPlayer == null)
             {
-                Console.WriteLine($"[Warcraft] Player {player.PlayerName} ({steamId}) not found in DB, creating...");
-                await AddNewPlayerToDatabase(player);
-                await _dbLock.WaitAsync();
-                try
-                {
-                    dbPlayer = await _connection.QueryFirstOrDefaultAsync<DatabasePlayer>(@"
-                    SELECT * FROM `players` WHERE `steamid` = @steamid",
-                        new { steamid = steamId });
-                }
-                finally
-                {
-                    _dbLock.Release();
-                }
-            }
-
-            if (dbPlayer == null)
-            {
-                Console.WriteLine($"[Warcraft] CRITICAL: Failed to load player {player.PlayerName} ({steamId}) even after creation.");
+                PersistentLogger.Error(nameof(LoadPlayerFromDatabase), $"Failed to load or create player row for steamid={steamId}.");
                 return null;
             }
 
-            // If the class no longer exists, set it to the default class
-            if (!WarcraftPlugin.Instance.classManager.GetAllClasses().Any(x => x.InternalName == dbPlayer.CurrentRace))
+            var currentRace = dbPlayer.CurrentRace;
+            if (!WarcraftPlugin.Instance.classManager.GetAllClasses().Any(x => x.InternalName == currentRace))
             {
-                var defaultClass = WarcraftPlugin.Instance.classManager.GetDefaultClass();
-                dbPlayer.CurrentRace = defaultClass.InternalName;
-                player.PrintToChat(" " + WarcraftPlugin.Instance.Localizer["class.disabled", defaultClass.LocalizedDisplayName]);
-
-                await _dbLock.WaitAsync();
-                try
+                currentRace = defaultRace;
+                if (player.IsValid)
                 {
-                    await _connection.ExecuteAsync("UPDATE players SET currentRace = @race WHERE steamid = @steamid",
-                        new { race = dbPlayer.CurrentRace, steamid = (long)player.SteamID });
-                }
-                finally
-                {
-                    _dbLock.Release();
-                }
-            }
-
-            bool raceInformationExists;
-            await _dbLock.WaitAsync();
-            try
-            {
-                raceInformationExists = await _connection.ExecuteScalarAsync<int>(@"
-            select count(*) from `raceinformation` where steamid = @steamid AND racename = @racename",
-                    new { steamid = steamId, racename = dbPlayer.CurrentRace }
-                ) > 0;
-
-                if (!raceInformationExists)
-                {
-                    await _connection.ExecuteAsync(@"
-                insert into `raceinformation` (steamid, racename, currentLevel)
-                values (@steamid, @racename, 0);",
-                        new { steamid = (long)player.SteamID, racename = dbPlayer.CurrentRace });
+                    player.PrintToChat(" " + WarcraftPlugin.Instance.Localizer["class.disabled", defaultClass.LocalizedDisplayName]);
                 }
 
-                var raceInformation = await _connection.QueryFirstAsync<ClassInformation>(@"
-            SELECT * from `raceinformation` where `steamid` = @steamid AND `racename` = @racename",
-                    new { steamid = steamId, racename = dbPlayer.CurrentRace });
-
-                var wcPlayer = new WarcraftPlayer(player);
-                wcPlayer.LoadClassInformation(raceInformation, xpSystem);
-
-                return wcPlayer;
+                await SaveCurrentClassAsync(steamId, playerName, currentRace, initialAmountToLevel);
             }
-            finally
+
+            var raceInformation = await EnsureRaceInformationAsync(steamId, currentRace, initialAmountToLevel);
+            if (raceInformation == null)
             {
-                _dbLock.Release();
+                PersistentLogger.Error(nameof(LoadPlayerFromDatabase), $"Failed to load race information for steamid={steamId}, race='{currentRace}'.");
+                return null;
             }
+
+            var wcPlayer = new WarcraftPlayer(player);
+            wcPlayer.LoadClassInformation(raceInformation, xpSystem);
+            return wcPlayer;
         }
 
         internal async Task<List<ClassInformation>> LoadClassInformationFromDatabase(CCSPlayerController player)
         {
-            await _dbLock.WaitAsync();
-            try
-            {
-                var raceInformation = await _connection.QueryAsync<ClassInformation>(@"
-            SELECT * from `raceinformation` where `steamid` = @steamid",
-                    new { steamid = (long)player.SteamID });
+            if (player == null || !player.IsValid || player.IsBot)
+                return [];
 
-                return raceInformation.AsList();
-            }
-            finally
+            var steamId = (long)player.SteamID;
+            if (_persistence.TryGetDirty(steamId, out _))
             {
-                _dbLock.Release();
+                await SavePlayerToDatabase(player);
             }
+
+            return await _dispatcher.ExecuteAsync("load-class-information", connection =>
+            {
+                return connection.Query<ClassInformation>(@"
+                    SELECT *
+                    FROM `raceinformation`
+                    WHERE `steamid` = @steamid;",
+                    new { steamid = steamId }).AsList();
+            });
         }
 
-        internal async Task SavePlayerToDatabase(CCSPlayerController player)
+        internal Task SavePlayerToDatabase(CCSPlayerController player)
         {
-            var wcPlayer = WarcraftPlugin.Instance.GetWcPlayer(player);
-            if (wcPlayer == null) return;
+            if (!PlayerProgressSnapshot.TryCreate(player, out var snapshot))
+                return Task.CompletedTask;
 
-            Server.PrintToConsole($"Saving {player.PlayerName} to database...");
-
-            await _dbLock.WaitAsync();
-            try
-            {
-                var raceInformationExists = await _connection.ExecuteScalarAsync<int>(@"
-            select count(*) from `raceinformation` where steamid = @steamid AND racename = @racename",
-                    new { steamid = (long)player.SteamID, racename = wcPlayer.className }
-                ) > 0;
-
-                if (!raceInformationExists)
-                {
-                    await _connection.ExecuteAsync(@"
-                insert into `raceinformation` (steamid, racename)
-                values (@steamid, @racename);",
-                        new { steamid = (long)player.SteamID, racename = wcPlayer.className });
-                }
-
-                await _connection.ExecuteAsync(@"
-                UPDATE `raceinformation` SET `currentXP` = @currentXp,
-                 `currentLevel` = @currentLevel,
-                 `ability1level` = @ability1Level,
-                 `ability2level` = @ability2Level,
-                 `ability3level` = @ability3Level,
-                 `ability4level` = @ability4Level,
-                 `amountToLevel` = @amountToLevel WHERE `steamid` = @steamid AND `racename` = @racename;",
-                    new
-                    {
-                        wcPlayer.currentXp,
-                        wcPlayer.currentLevel,
-                        ability1Level = wcPlayer.GetAbilityLevel(0),
-                        ability2Level = wcPlayer.GetAbilityLevel(1),
-                        ability3Level = wcPlayer.GetAbilityLevel(2),
-                        ability4Level = wcPlayer.GetAbilityLevel(3),
-                        wcPlayer.amountToLevel,
-                        steamid = (long)player.SteamID,
-                        racename = wcPlayer.className
-                    });
-            }
-            finally
-            {
-                _dbLock.Release();
-            }
+            var dirtyEntry = _persistence.MarkDirty(snapshot);
+            return FlushBatchAsync([dirtyEntry], "player-barrier");
         }
 
-        internal async Task SaveClients()
+        internal Task FlushDirtyPlayerAsync(long steamId, string reason)
         {
-            var saveTasks = new List<Task>();
-            foreach (var player in Utilities.GetPlayers())
-            {
-                if (!player.IsValid) continue;
+            if (!_persistence.TryGetDirty(steamId, out var dirtyEntry))
+                return Task.CompletedTask;
 
-                var wcPlayer = WarcraftPlugin.Instance.GetWcPlayer(player);
-                if (wcPlayer == null) continue;
-
-                saveTasks.Add(SavePlayerToDatabase(player));
-            }
-            await Task.WhenAll(saveTasks);
+            return FlushBatchAsync([dirtyEntry], reason);
         }
 
-        internal async Task SaveCurrentClass(CCSPlayerController player, string className)
+        internal Task FlushDirtyPlayersAsync(string reason)
         {
-            if (player == null || !player.IsValid || string.IsNullOrWhiteSpace(className))
-                return;
+            return FlushBatchAsync(_persistence.SnapshotDirtyPlayers(), reason);
+        }
 
-            await _dbLock.WaitAsync();
-            try
-            {
-                await _connection.ExecuteAsync(@"
-            UPDATE `players` SET `currentRace` = @currentRace, `name` = @name WHERE `steamid` = @steamid;",
-                    new
-                    {
-                        currentRace = className,
-                        name = player.PlayerName,
-                        steamid = (long)player.SteamID
-                    });
-            }
-            finally
-            {
-                _dbLock.Release();
-            }
+        internal async Task FlushAllDirtyAndDrainAsync(string reason, TimeSpan timeout)
+        {
+            await FlushDirtyPlayersAsync(reason).WaitAsync(timeout);
+            await _dispatcher.DrainAsync(reason, timeout);
+        }
+
+        internal Task SaveClients()
+        {
+            return FlushDirtyPlayersAsync("save-clients");
+        }
+
+        internal Task SaveCurrentClass(CCSPlayerController player, string className)
+        {
+            if (player == null || !player.IsValid || player.IsBot || string.IsNullOrWhiteSpace(className))
+                return Task.CompletedTask;
+
+            return SaveCurrentClassAsync(
+                steamId: (long)player.SteamID,
+                playerName: player.GetRealPlayerName(),
+                className: className,
+                initialAmountToLevel: GetInitialAmountToLevel());
         }
 
         internal void ResetClients()
         {
-            // This is a destructive operation, maybe keep it sync or make async?
-            // Keeping sync for now but locking.
-            _dbLock.Wait();
-            try
-            {
-                _connection.Execute(@"
-                DELETE FROM `players`;");
+            _persistence.ClearAll();
 
-                _connection.Execute(@"
-                DELETE FROM `raceinformation`;");
-            }
-            finally
+            _dispatcher.ExecuteAsync("reset-clients", connection =>
             {
-                _dbLock.Release();
-            }
+                using var transaction = connection.BeginTransaction();
+                connection.Execute("DELETE FROM `players`;", transaction: transaction);
+                connection.Execute("DELETE FROM `raceinformation`;", transaction: transaction);
+                transaction.Commit();
+            }).GetAwaiter().GetResult();
+        }
+
+        private async Task<DatabasePlayer> EnsurePlayerRecordAsync(long steamId, string playerName, string defaultRace)
+        {
+            return await _dispatcher.ExecuteAsync("ensure-player-record", connection =>
+            {
+                connection.Execute(@"
+                    INSERT INTO `players` (`steamid`, `currentRace`, `name`)
+                    VALUES (@steamid, @currentRace, @name)
+                    ON CONFLICT(`steamid`) DO NOTHING;",
+                    new
+                    {
+                        steamid = steamId,
+                        currentRace = defaultRace,
+                        name = playerName
+                    });
+
+                return connection.QueryFirstOrDefault<DatabasePlayer>(@"
+                    SELECT *
+                    FROM `players`
+                    WHERE `steamid` = @steamid;",
+                    new { steamid = steamId });
+            });
+        }
+
+        private async Task<ClassInformation> EnsureRaceInformationAsync(long steamId, string raceName, int initialAmountToLevel)
+        {
+            return await _dispatcher.ExecuteAsync("ensure-race-information", connection =>
+            {
+                connection.Execute(@"
+                    INSERT INTO `raceinformation`
+                        (`steamid`, `racename`, `currentXP`, `currentLevel`, `amountToLevel`,
+                         `ability1level`, `ability2level`, `ability3level`, `ability4level`)
+                    VALUES
+                        (@steamid, @racename, 0, 0, @amountToLevel, 0, 0, 0, 0)
+                    ON CONFLICT(`steamid`, `racename`) DO NOTHING;",
+                    new
+                    {
+                        steamid = steamId,
+                        racename = raceName,
+                        amountToLevel = initialAmountToLevel
+                    });
+
+                return connection.QueryFirstOrDefault<ClassInformation>(@"
+                    SELECT *
+                    FROM `raceinformation`
+                    WHERE `steamid` = @steamid AND `racename` = @racename;",
+                    new
+                    {
+                        steamid = steamId,
+                        racename = raceName
+                    });
+            });
+        }
+
+        private Task SaveCurrentClassAsync(long steamId, string playerName, string className, int initialAmountToLevel)
+        {
+            return _dispatcher.ExecuteAsync("save-current-class", connection =>
+            {
+                using var transaction = connection.BeginTransaction();
+
+                connection.Execute(PlayerUpsertSql,
+                    new
+                    {
+                        steamid = steamId,
+                        currentRace = className,
+                        name = playerName
+                    },
+                    transaction);
+
+                connection.Execute(@"
+                    INSERT INTO `raceinformation`
+                        (`steamid`, `racename`, `currentXP`, `currentLevel`, `amountToLevel`,
+                         `ability1level`, `ability2level`, `ability3level`, `ability4level`)
+                    VALUES
+                        (@steamid, @racename, 0, 0, @amountToLevel, 0, 0, 0, 0)
+                    ON CONFLICT(`steamid`, `racename`) DO NOTHING;",
+                    new
+                    {
+                        steamid = steamId,
+                        racename = className,
+                        amountToLevel = initialAmountToLevel
+                    },
+                    transaction);
+
+                transaction.Commit();
+            });
+        }
+
+        private async Task FlushBatchAsync(IReadOnlyList<DirtyPlayerProgress> dirtyPlayers, string reason)
+        {
+            if (dirtyPlayers == null || dirtyPlayers.Count == 0)
+                return;
+
+            var timer = Stopwatch.StartNew();
+            await _dispatcher.ExecuteAsync($"flush:{reason}", connection => SaveSnapshotBatch(connection, dirtyPlayers));
+            _persistence.CompleteFlush(dirtyPlayers);
+            timer.Stop();
+
+            PersistentLogger.Info(
+                nameof(Database),
+                $"Flushed {dirtyPlayers.Count} player snapshot(s) for '{reason}' in {timer.Elapsed.TotalMilliseconds:F1}ms. dirtyRemaining={DirtyCount}, queueDepth={PendingQueueDepth}",
+                mirrorConsole: false);
+        }
+
+        private static void SaveSnapshotBatch(SqliteConnection connection, IReadOnlyList<DirtyPlayerProgress> dirtyPlayers)
+        {
+            var snapshots = dirtyPlayers.Select(entry => entry.Snapshot).ToArray();
+
+            using var transaction = connection.BeginTransaction();
+
+            connection.Execute(PlayerUpsertSql,
+                snapshots.Select(snapshot => new
+                {
+                    steamid = snapshot.SteamId,
+                    currentRace = snapshot.CurrentRace,
+                    name = snapshot.PlayerName
+                }),
+                transaction);
+
+            connection.Execute(RaceUpsertSql,
+                snapshots.Select(snapshot => new
+                {
+                    steamid = snapshot.SteamId,
+                    racename = snapshot.CurrentRace,
+                    currentXp = snapshot.CurrentXp,
+                    currentLevel = snapshot.CurrentLevel,
+                    amountToLevel = snapshot.AmountToLevel,
+                    ability1Level = snapshot.Ability1Level,
+                    ability2Level = snapshot.Ability2Level,
+                    ability3Level = snapshot.Ability3Level,
+                    ability4Level = snapshot.Ability4Level
+                }),
+                transaction);
+
+            transaction.Commit();
+        }
+
+        private static void InitializeSchema(SqliteConnection connection)
+        {
+            connection.Execute("PRAGMA journal_mode=WAL;");
+            connection.Execute("PRAGMA synchronous=NORMAL;");
+            connection.Execute("PRAGMA busy_timeout=5000;");
+
+            connection.Execute(@"
+                CREATE TABLE IF NOT EXISTS `players` (
+                    `steamid` UNSIGNED BIG INT NOT NULL,
+                    `currentRace` VARCHAR(32) NOT NULL,
+                    `name` VARCHAR(64),
+                    PRIMARY KEY (`steamid`));");
+
+            connection.Execute(@"
+                CREATE TABLE IF NOT EXISTS `raceinformation` (
+                    `steamid` UNSIGNED BIG INT NOT NULL,
+                    `racename` VARCHAR(32) NOT NULL,
+                    `currentXP` INT NULL DEFAULT 0,
+                    `currentLevel` INT NULL DEFAULT 0,
+                    `amountToLevel` INT NULL DEFAULT 100,
+                    `ability1level` TINYINT NULL DEFAULT 0,
+                    `ability2level` TINYINT NULL DEFAULT 0,
+                    `ability3level` TINYINT NULL DEFAULT 0,
+                    `ability4level` TINYINT NULL DEFAULT 0,
+                    PRIMARY KEY (`steamid`, `racename`));");
+        }
+
+        private static int GetInitialAmountToLevel()
+        {
+            return WarcraftPlugin.Instance.XpSystem?.GetXpForLevel(0) ?? 100;
         }
 
         public void Dispose()
@@ -297,17 +371,13 @@ namespace WarcraftPlugin.Core
             if (_disposed)
                 return;
 
-            _connection?.Dispose();
-            _dbLock?.Dispose();
+            _dispatcher?.ShutdownAsync("database-dispose", TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
             _disposed = true;
         }
     }
 
     internal class DatabasePlayer
     {
-        // Dapper returns integer values from SQLite as long (Int64) which
-        // cannot be automatically cast to ulong. Using a signed integer here
-        // avoids InvalidCastException when mapping query results.
         internal long SteamId { get; set; }
         internal string CurrentRace { get; set; }
         internal string Name { get; set; }

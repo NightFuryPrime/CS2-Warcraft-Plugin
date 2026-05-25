@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
@@ -11,18 +12,18 @@ namespace WarcraftPlugin.Core
         {
             if (wcPlayer == null) return 0;
 
-            int totalPointsUsed = 0;
             var abilityCount = wcPlayer.GetClass().Abilities.Count;
-            for (int i = 0; i < abilityCount; i++)
-            {
-                totalPointsUsed += wcPlayer.GetAbilityLevel(i);
-            }
+            var abilityLevels = Enumerable.Range(0, abilityCount)
+                .Select(wcPlayer.GetAbilityLevel);
 
-            int level = wcPlayer.GetLevel();
-            if (level > WarcraftPlugin.MaxLevel)
-                level = WarcraftPlugin.MaxSkillLevel;
+            return GetFreeSkillPoints(wcPlayer.GetLevel(), abilityLevels);
+        }
 
-            return level - totalPointsUsed;
+        internal static int GetFreeSkillPoints(int level, IEnumerable<int> abilityLevels)
+        {
+            var clampedLevel = Math.Clamp(level, 0, WarcraftPlugin.MaxLevel);
+            var totalPointsUsed = abilityLevels?.Sum() ?? 0;
+            return Math.Max(0, clampedLevel - totalPointsUsed);
         }
 
         internal static void AutoSpendSkillPoints(WarcraftPlayer wcPlayer)

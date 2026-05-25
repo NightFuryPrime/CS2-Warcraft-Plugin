@@ -1,4 +1,5 @@
 using CounterStrikeSharp.API;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Linq;
 using WarcraftPlugin.Core;
@@ -50,6 +51,7 @@ internal static class ShopMenu
                     }
                 }
 
+                var charged = false;
                 try
                 {
                     var moneyServices = player.InGameMoneyServices;
@@ -61,6 +63,7 @@ internal static class ShopMenu
                     }
 
                     moneyServices.Account -= itemInstance.Price;
+                    charged = true;
                     Utilities.SetStateChanged(player,
                         "CCSPlayerController", "m_pInGameMoneyServices");
                 }
@@ -72,19 +75,31 @@ internal static class ShopMenu
                 }
 
                 var applied = false;
-                if (itemInstance.IsInstant)
+                try
                 {
-                    itemInstance.Apply(player);
-                    applied = true;
+                    if (itemInstance.IsInstant)
+                    {
+                        itemInstance.Apply(player);
+                        applied = true;
+                    }
+                    else if (currentWcPlayer.AddItem(itemInstance))
+                    {
+                        itemInstance.Apply(player);
+                        applied = true;
+                    }
                 }
-                else if (currentWcPlayer.AddItem(itemInstance))
+                catch
                 {
-                    itemInstance.Apply(player);
-                    applied = true;
+                    currentWcPlayer.Items.Remove(itemInstance);
+                    Refund(player, itemInstance.Price, charged);
+                    player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
+                    player.PrintToChat($" {ChatColors.Red}Unable to apply item right now.");
+                    return;
                 }
 
                 if (!applied)
                 {
+                    Refund(player, itemInstance.Price, charged);
                     player.PrintToChat($" {ShopItem.Localizer["menu.shop.already_owned"]}");
                     player.PlayLocalSound("sounds/ui/menu_invalid.vsnd");
                     return;
@@ -95,5 +110,18 @@ internal static class ShopMenu
             });
 
         MenuManager.OpenMainMenu(wcPlayer.Player, builder.Build());
+    }
+
+    private static void Refund(CCSPlayerController player, int amount, bool charged)
+    {
+        if (!charged || amount <= 0)
+            return;
+
+        var moneyServices = player.InGameMoneyServices;
+        if (moneyServices == null)
+            return;
+
+        moneyServices.Account += amount;
+        Utilities.SetStateChanged(player, "CCSPlayerController", "m_pInGameMoneyServices");
     }
 }

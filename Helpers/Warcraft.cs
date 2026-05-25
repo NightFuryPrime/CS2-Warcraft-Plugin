@@ -159,7 +159,7 @@ namespace WarcraftPlugin.Helpers
         /// <returns>Returns the created CBeam object or null if creation failed.</returns>
         static public CBeam DrawLaserBetween(Vector startPos, Vector endPos, Color? color = null, float duration = 1, float width = 2)
         {
-            CBeam beam = Utilities.CreateEntityByName<CBeam>("beam");
+            CBeam beam = CreateEntityByNameSafe<CBeam>("beam");
             if (beam == null) return null;
 
             beam.Render = color ?? Color.Red;
@@ -227,6 +227,37 @@ namespace WarcraftPlugin.Helpers
             return player?.PlayerPawn?.Value?.ViewOffset?.Z ?? 0f;
         }
 
+        public static bool TryGetPawn(this CCSPlayerController player, out CCSPlayerPawn pawn)
+        {
+            pawn = null;
+            if (player == null)
+                return false;
+
+            pawn = player.PlayerPawn?.Value;
+            return player?.IsValid == true && pawn != null && pawn.IsValid;
+        }
+
+        public static bool TryGetAlivePawn(this CCSPlayerController player, out CCSPlayerPawn pawn)
+        {
+            pawn = null;
+            return player?.PawnIsAlive == true && player.TryGetPawn(out pawn);
+        }
+
+        public static bool TryGetActiveWeapon(this CCSPlayerController player, out CBasePlayerWeapon activeWeapon)
+        {
+            activeWeapon = null;
+            if (!player.TryGetAlivePawn(out var pawn))
+                return false;
+
+            activeWeapon = pawn.WeaponServices?.ActiveWeapon?.Value;
+            return activeWeapon != null && activeWeapon.IsValid;
+        }
+
+        public static string GetCustomNameSafe(this CBasePlayerWeapon weapon)
+        {
+            return weapon?.AttributeManager?.Item?.CustomName;
+        }
+
         /// <summary>
         /// Spawns a particle system at the specified position with a given particle effect name and duration.
         /// </summary>
@@ -236,12 +267,12 @@ namespace WarcraftPlugin.Helpers
         /// <returns>Returns the created CParticleSystem object or null if creation failed.</returns>
         public static CParticleSystem SpawnParticle(Vector pos, string particleName, float duration = 5)
         {
-            CParticleSystem particle = Utilities.CreateEntityByName<CParticleSystem>("info_particle_system");
-            if (!particle.IsValid) return null;
+            CParticleSystem particle = CreateEntityByNameSafe<CParticleSystem>("info_particle_system");
+            if (particle == null) return null;
             particle.EffectName = particleName;
-            particle?.Teleport(pos, new QAngle(), new Vector());
+            particle.Teleport(pos, new QAngle(), new Vector());
             particle.StartActive = true;
-            particle?.DispatchSpawn();
+            particle.DispatchSpawn();
 
             WarcraftPlugin.Instance.AddTimer(duration, () => particle?.RemoveIfValid());
 
@@ -258,8 +289,8 @@ namespace WarcraftPlugin.Helpers
         /// <param name="killFeedIcon">The icon to display in the kill feed. Attacker must be set</param>
         public static void SpawnExplosion(Vector pos, float damage, float radius, CCSPlayerController attacker = null, KillFeedIcon? killFeedIcon = null)
         {
-            var heProjectile = Utilities.CreateEntityByName<CHEGrenadeProjectile>("hegrenade_projectile");
-            if (heProjectile == null || !heProjectile.IsValid) return;
+            var heProjectile = CreateEntityByNameSafe<CHEGrenadeProjectile>("hegrenade_projectile");
+            if (heProjectile == null) return;
             pos.Z += 10;
             heProjectile.TicksAtZeroVelocity = 100;
             heProjectile.Damage = damage;
@@ -287,8 +318,8 @@ namespace WarcraftPlugin.Helpers
         /// <returns>Returns the created CSmokeGrenadeProjectile object.</returns>
         public static CSmokeGrenadeProjectile SpawnSmoke(Vector pos, CCSPlayerPawn attacker, Color color)
         {
-            var smokeProjectile = Utilities.CreateEntityByName<CSmokeGrenadeProjectile>("smokegrenade_projectile");
-            if (smokeProjectile == null || !smokeProjectile.IsValid) return null;
+            var smokeProjectile = CreateEntityByNameSafe<CSmokeGrenadeProjectile>("smokegrenade_projectile");
+            if (smokeProjectile == null) return null;
 
             pos.Z += 5;
             smokeProjectile.Teleport(pos, new QAngle(), Vector.Zero);
@@ -322,7 +353,31 @@ namespace WarcraftPlugin.Helpers
         /// <param name="delay">The delay before the sound is played.</param>
         public static void EmitSound(this CBaseEntity entity, string soundpath, int pitch = 1, float volume = 1, float delay = 0)
         {
-            Memory.CBaseEntity_EmitSoundParamsFunc?.Invoke(entity, soundpath, pitch, volume, delay);
+            if (entity == null || !entity.IsValid || string.IsNullOrWhiteSpace(soundpath))
+                return;
+
+            void PlaySound()
+            {
+                if (entity == null || !entity.IsValid)
+                    return;
+
+                try
+                {
+                    entity.EmitSound(soundpath, null, volume, pitch);
+                }
+                catch (Exception ex)
+                {
+                    PersistentLogger.Error(nameof(EmitSound), $"Failed to emit sound '{soundpath}'.", ex, mirrorConsole: false);
+                }
+            }
+
+            if (delay > 0 && WarcraftPlugin.Instance != null)
+            {
+                WarcraftPlugin.Instance.AddTimer(delay, PlaySound);
+                return;
+            }
+
+            PlaySound();
         }
 
         /// <summary>
@@ -638,7 +693,7 @@ namespace WarcraftPlugin.Helpers
             var behindAngle = player.PlayerPawn.Value.GetEyeAngles().Y;
             var infrontAngle = anotherPlayer.PlayerPawn.Value.GetEyeAngles().Y;
 
-            return Math.Abs(behindAngle - infrontAngle) <= 50;
+            return Geometry.AngleDeltaDegrees(behindAngle, infrontAngle) <= 50;
         }
 
         /// <summary>
@@ -907,6 +962,26 @@ namespace WarcraftPlugin.Helpers
             {
                 obj?.Remove();
             }
+        }
+
+        public static T CreateEntityByNameSafe<T>(string name) where T : CBaseEntity
+        {
+            var entity = Utilities.CreateEntityByName<T>(name);
+            return entity != null && entity.IsValid ? entity : null;
+        }
+
+        public static void NextFrameIfAlive(CCSPlayerController player, Action<CCSPlayerController, CCSPlayerPawn> action)
+        {
+            if (action == null)
+                return;
+
+            Server.NextFrame(() =>
+            {
+                if (player?.IsValid != true || !player.TryGetAlivePawn(out var pawn))
+                    return;
+
+                action(player, pawn);
+            });
         }
 
         /// <summary>

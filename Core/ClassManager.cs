@@ -15,6 +15,7 @@ namespace WarcraftPlugin.Core
     {
         private readonly Dictionary<string, Type> _classes = [];
         private readonly Dictionary<string, WarcraftClass> _classObjects = [];
+        private WarcraftClass[] _cachedClasses;
 
         private DirectoryInfo _customHeroesFolder;
         private long _customHeroesFilesTimestamp = 0;
@@ -116,6 +117,7 @@ namespace WarcraftPlugin.Core
             Console.WriteLine($"Registered class: {heroClass.DisplayName}");
             _classes[heroClass.InternalName] = type;
             _classObjects[heroClass.InternalName] = heroClass;
+            _cachedClasses = null;
         }
 
         internal WarcraftClass InstantiateClassByName(string name)
@@ -151,6 +153,7 @@ namespace WarcraftPlugin.Core
                         Console.WriteLine("Reloading custom hero files...");
                         _classes.Clear();
                         _classObjects.Clear();
+                        _cachedClasses = null;
                         CustomHero.UnloadAssembly();
 
                         //Trigger plugin reload
@@ -170,7 +173,8 @@ namespace WarcraftPlugin.Core
             {
                 throw new Exception("No warcraft classes registered!!!");
             }
-            return _classObjects.Values.ToArray();
+
+            return _cachedClasses ??= _classObjects.Values.ToArray();
         }
 
         internal WarcraftClass GetDefaultClass()

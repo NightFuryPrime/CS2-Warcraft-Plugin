@@ -10,7 +10,7 @@ namespace WarcraftPlugin.Items;
 internal class OrbOfFrost : ShopItem
 {
     protected override string Name => "Orb of Frost";
-    protected override FormattableString Description => $"{SlowChance*100}% chance to slow enemy on hit";
+    protected override FormattableString Description => $"{SlowChance * 100}% chance to slow enemy on hit";
     internal override int Price { get; set; } = 3500;
     internal override Color Color { get; set; } = Color.FromArgb(255, 0, 191, 255); // DeepSkyBlue for frost/slow
 
@@ -35,20 +35,16 @@ internal class OrbOfFrost : ShopItem
     }
 
     private class FrostSlowEffect(CCSPlayerController owner, CCSPlayerController victim, float duration, float slowModifier)
-        : WarcraftEffect(owner, duration)
+        : WarcraftEffect(owner, duration, onTickInterval: 0f)
     {
         private readonly CCSPlayerController _victim = victim;
-        private float _originalSpeed;
-        private float _originalModifier;
 
         public override void OnStart()
         {
-            if (!_victim.IsAlive()) return;
-            var pawn = _victim.PlayerPawn.Value;
-            _originalSpeed = pawn.MovementServices.Maxspeed;
-            _originalModifier = pawn.VelocityModifier;
-            pawn.MovementServices.Maxspeed = _originalSpeed * slowModifier;
-            pawn.VelocityModifier = _originalModifier * slowModifier;
+            if (!_victim.TryGetAlivePawn(out _)) return;
+            SetMaxSpeedMultiplier(_victim, slowModifier, "frost");
+            SetVelocityMultiplier(_victim, slowModifier, "frost");
+            RefreshPlayerState(_victim);
             _victim.PrintToChat($" {ShopItem.Localizer["item.orb_of_frost.slowed", Owner.PlayerName]}");
         }
 
@@ -56,10 +52,8 @@ internal class OrbOfFrost : ShopItem
 
         public override void OnFinish()
         {
-            if (!_victim.IsValid || !_victim.PawnIsAlive) return;
-            var pawn = _victim.PlayerPawn.Value;
-            pawn.MovementServices.Maxspeed = _originalSpeed;
-            pawn.VelocityModifier = _originalModifier;
+            RemoveStateContributions(_victim, "frost");
+            RefreshPlayerState(_victim);
         }
     }
 }

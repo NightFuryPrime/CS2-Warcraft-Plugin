@@ -126,6 +126,12 @@ namespace WarcraftPlugin.Helpers
             }
         }
 
+        public static float AngleDeltaDegrees(float a, float b)
+        {
+            var delta = Math.Abs((a - b) % 360f);
+            return delta > 180f ? 360f - delta : delta;
+        }
+
         /// <summary>
         /// Returns a copy of the vector with values replaced.
         /// </summary>

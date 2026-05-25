@@ -20,6 +20,5 @@ internal class TomeOfExperience : ShopItem
     {
         WarcraftPlugin.Instance.XpSystem.AddXp(player, XpGain);
         player.PrintToChat($" {ChatColors.Gold}+{XpGain} XP{ChatColors.Default}");
-        WarcraftPlugin.Instance.SavePlayerProgress(player);
     }
 }

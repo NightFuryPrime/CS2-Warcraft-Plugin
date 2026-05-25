@@ -8,6 +8,7 @@ using WarcraftPlugin.Models;
 using System.Drawing;
 using System.Collections.Generic;
 using WarcraftPlugin.Events.ExtendedEvents;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 
 namespace WarcraftPlugin.Classes
@@ -20,13 +21,15 @@ namespace WarcraftPlugin.Classes
         public override string DisplayName => "Paladin";
         public override Color DefaultColor => Color.Yellow;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Healing Aura", "Heal allies within 200/300/400/500/600 units for 1/2/3/4/5 HP every few seconds."),
             new WarcraftAbility("Holy Shield", "Gain an additional 20/40/60/80/100 armor."),
             new WarcraftAbility("Smite", "15/30/45/60/75% chance to strip enemy armor for 5/10/15/20/25 points."),
             new WarcraftCooldownAbility("Divine Resurrection", "80% chance to instantly revive a fallen ally. Cooldown: 60s", 60f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         public override void Register()
         {
@@ -96,7 +99,7 @@ namespace WarcraftPlugin.Classes
 
         private CCSPlayerController GetRandomFallenAlly()
         {
-            var deadTeamPlayers = Utilities.GetPlayers()
+            var deadTeamPlayers = PlayerCache.GetPlayers()
                 .Where(x => x.Team == Player.Team && !x.PawnIsAlive && x.IsValid)
                 .ToList();
 
@@ -119,19 +122,24 @@ namespace WarcraftPlugin.Classes
             //Revive
             playerToRevive.Respawn();
 
-            Server.NextFrame(() => {
-                if (playerToRevive.IsAlive() && Player.IsAlive()) {
-                    var targetPawn = playerToRevive.PlayerPawn.Value;
-                    var ownerPawn = Player.PlayerPawn.Value;
-                    if (targetPawn != null && ownerPawn != null) {
+            Server.NextFrame(() =>
+            {
+                if (playerToRevive.IsAlive() && Player.IsAlive())
+                {
+                    var targetPawn = playerToRevive.PlayerPawn?.Value;
+                    var ownerPawn = Player.PlayerPawn?.Value;
+                    if (targetPawn != null && ownerPawn != null)
+                    {
                         targetPawn.Teleport(Player.CalculatePositionInFront(10, 60), ownerPawn.GetEyeAngles(), new Vector());
                     }
                 }
             });
 
             playerToRevive.PrintToChat(" " + Localizer["paladin.revive"]);
-            Utilities.GetPlayers().ForEach(x =>
-                x.PrintToChat(" " + Localizer["paladin.revive.other", playerToRevive.GetRealPlayerName(), Player.GetRealPlayerName()]));
+            foreach (var x in PlayerCache.GetPlayers())
+            {
+                x.PrintToChat(" " + Localizer["paladin.revive.other", playerToRevive.GetRealPlayerName(), Player.GetRealPlayerName()]);
+            }
 
             return true;
         }
@@ -142,7 +150,7 @@ namespace WarcraftPlugin.Classes
             var victim = @event.Userid;
             if (attacker == null || attacker.UserId != Player.UserId || victim == null || !victim.IsAlive()) return;
 
-            var victimPawn = victim.PlayerPawn.Value;
+            var victimPawn = victim.PlayerPawn?.Value;
             if (victimPawn == null) return;
 
             //Smite
@@ -156,7 +164,7 @@ namespace WarcraftPlugin.Classes
 
         internal class HealingAuraEffect(CCSPlayerController owner, float onTickInterval) : WarcraftEffect(owner, onTickInterval: onTickInterval)
         {
-            public override void OnStart() {}
+            public override void OnStart() { }
             public override void OnTick()
             {
                 var currentAbilityLevel = Owner.GetWarcraftPlayer().GetAbilityLevel(0);
@@ -168,8 +176,9 @@ namespace WarcraftPlugin.Classes
                 var healingZone = Warcraft.CreateBoxAroundPoint(ownerPawn.AbsOrigin, auraSize, auraSize, auraSize);
                 //healingZone.Show(duration: 2); //Debug
                 //Find players within area
-                var playersToHeal = Utilities.GetPlayers()
-                    .Where(x => {
+                var playersToHeal = PlayerCache.GetPlayers()
+                    .Where(x =>
+                    {
                         if (!x.AllyOf(Owner) || !x.PawnIsAlive || !Owner.IsValid) return false;
                         var pawn = x.PlayerPawn?.Value;
                         return pawn != null && healingZone.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
@@ -180,7 +189,7 @@ namespace WarcraftPlugin.Classes
                 {
                     foreach (var player in playersToHeal)
                     {
-                        var playerPawn = player.PlayerPawn.Value;
+                        var playerPawn = player.PlayerPawn?.Value;
                         if (playerPawn != null && playerPawn.Health < playerPawn.MaxHealth)
                         {
                             player.Heal(currentAbilityLevel, healer: Owner);
@@ -189,7 +198,7 @@ namespace WarcraftPlugin.Classes
                     }
                 }
             }
-            public override void OnFinish(){}
+            public override void OnFinish() { }
         }
     }
 }

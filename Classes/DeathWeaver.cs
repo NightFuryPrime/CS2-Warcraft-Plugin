@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using WarcraftPlugin.Core;
 using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Events.ExtendedEvents;
 using WarcraftPlugin.Helpers;
@@ -17,13 +18,15 @@ namespace WarcraftPlugin.Classes
         public override string DisplayName => "Death Weaver";
         public override Color DefaultColor => Color.MediumPurple;
 
-        public override List<IWarcraftAbility> Abilities =>
+        private readonly List<IWarcraftAbility> _abilities =
         [
             new WarcraftAbility("Cripple", "33% chance to slow an enemy for 1/1.5/2/2.5/3 seconds."),
             new WarcraftAbility("Unholy Frenzy", "25% chance to deal 10/20/30/40/50% bonus damage."),
             new WarcraftAbility("Necromancer Master", "50/62/75/88/100% chance to spawn with an assault rifle."),
             new WarcraftCooldownAbility("Raise Skeleton", "80% chance to revive a fallen ally. Cooldown: 60s", 60f)
         ];
+
+        public override List<IWarcraftAbility> Abilities => _abilities;
 
         private const float CrippleMinDuration = 1f;
         private const float CrippleDurationStep = 0.5f;
@@ -95,7 +98,7 @@ namespace WarcraftPlugin.Classes
                 return;
             }
 
-            var deadTeamPlayers = Utilities.GetPlayers()
+            var deadTeamPlayers = PlayerCache.GetPlayers()
                 .Where(x => x.Team == Player.Team && !x.PawnIsAlive && x.IsValid)
                 .ToList();
             if (!deadTeamPlayers.Any())
@@ -118,34 +121,33 @@ namespace WarcraftPlugin.Classes
                 targetPawn.Teleport(Player.CalculatePositionInFront(10, 60), ownerPawn.GetEyeAngles(), new Vector());
 
                 var particle = Warcraft.SpawnParticle(playerToRevive.EyePosition(-60), "particles/explosions_fx/explosion_smokegrenade_init.vpcf", 2);
-                particle.SetParent(targetPawn);
+                particle?.SetParent(targetPawn);
             });
 
             playerToRevive.PrintToChat(" " + Localizer["death_weaver.revive"]);
-            Utilities.GetPlayers().ForEach(x =>
-                x.PrintToChat(" " + Localizer["death_weaver.revive.other", playerToRevive.GetRealPlayerName(), Player.GetRealPlayerName()]));
+            foreach (var x in PlayerCache.GetPlayers())
+            {
+                x.PrintToChat(" " + Localizer["death_weaver.revive.other", playerToRevive.GetRealPlayerName(), Player.GetRealPlayerName()]);
+            }
         }
 
         internal class CrippleEffect(CCSPlayerController owner, CCSPlayerController victim, float duration) : WarcraftEffect(owner, duration)
         {
             private readonly CCSPlayerController _victim = victim;
-            private float _originalSpeed;
-            private float _originalModifier;
             private CParticleSystem _particle;
 
             public override void OnStart()
             {
-                if (!_victim.IsAlive()) return;
-                _originalSpeed = _victim.PlayerPawn.Value.MovementServices.Maxspeed;
-                _originalModifier = _victim.PlayerPawn.Value.VelocityModifier;
-                _victim.PlayerPawn.Value.MovementServices.Maxspeed = _originalSpeed * 0.7f;
-                _victim.PlayerPawn.Value.VelocityModifier = _originalModifier * 0.7f;
+                if (!_victim.TryGetAlivePawn(out var victimPawn)) return;
+                SetMaxSpeedMultiplier(_victim, 0.7f, "cripple");
+                SetVelocityMultiplier(_victim, 0.7f, "cripple");
+                RefreshPlayerState(_victim);
 
                 Owner.PrintToChat($" {Localizer["death_weaver.cripple", _victim.GetRealPlayerName()]}");
                 _victim.PrintToChat($" {Localizer["death_weaver.cripple.victim", Owner.GetRealPlayerName()]}");
 
-                _particle = Warcraft.SpawnParticle(_victim.PlayerPawn.Value.AbsOrigin, "particles/water_impact/water_foam_01c.vpcf", Duration);
-                _particle.SetParent(_victim.PlayerPawn.Value);
+                _particle = Warcraft.SpawnParticle(victimPawn.AbsOrigin, "particles/water_impact/water_foam_01c.vpcf", Duration);
+                _particle?.SetParent(victimPawn);
             }
 
             public override void OnTick()
@@ -155,12 +157,8 @@ namespace WarcraftPlugin.Classes
 
             public override void OnFinish()
             {
-                if (_victim.IsAlive())
-                {
-                    _victim.PlayerPawn.Value.MovementServices.Maxspeed = _originalSpeed;
-                    _victim.PlayerPawn.Value.VelocityModifier = _originalModifier;
-                }
-
+                RemoveStateContributions(_victim, "cripple");
+                RefreshPlayerState(_victim);
                 _particle.RemoveIfValid();
             }
         }
