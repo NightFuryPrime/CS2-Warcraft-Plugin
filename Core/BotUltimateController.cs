@@ -205,7 +205,7 @@ namespace WarcraftPlugin.Core
 
         private bool TryRevive(CCSPlayerController bot, WarcraftClass cls)
         {
-            if (PlayerCache.GetPlayers().Any(p => p.Team == bot.Team && !p.PawnIsAlive && p.IsValid))
+            if (PlayerCache.GetPlayers().Any(p => BotControl.IsValidReviveTarget(bot, p)))
             {
                 cls.InvokeAbility(WarcraftPlayer.UltimateAbilityIndex);
                 DelayNextDecision(bot, 8f);

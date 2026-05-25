@@ -82,7 +82,7 @@ namespace WarcraftPlugin.Core
                 xpSystem,
                 (long)player.SteamID,
                 player.GetRealPlayerName(),
-                notifyDisabledClass: true);
+                notifyDisabledClass: true).ConfigureAwait(false);
         }
 
         internal async Task<WarcraftPlayer> LoadPlayerFromDatabase(
@@ -101,10 +101,10 @@ namespace WarcraftPlugin.Core
 
             if (_persistence.TryGetDirty(steamId, out var pendingDirty))
             {
-                await FlushBatchAsync([pendingDirty], "connect-reconcile");
+                await FlushBatchAsync([pendingDirty], "connect-reconcile").ConfigureAwait(false);
             }
 
-            var dbPlayer = await EnsurePlayerRecordAsync(steamId, playerName, defaultRace);
+            var dbPlayer = await EnsurePlayerRecordAsync(steamId, playerName, defaultRace).ConfigureAwait(false);
             if (dbPlayer == null)
             {
                 PersistentLogger.Error(nameof(LoadPlayerFromDatabase), $"Failed to load or create player row for steamid={steamId}.");
@@ -124,10 +124,10 @@ namespace WarcraftPlugin.Core
                     });
                 }
 
-                await SaveCurrentClassAsync(steamId, playerName, currentRace, initialAmountToLevel);
+                await SaveCurrentClassAsync(steamId, playerName, currentRace, initialAmountToLevel).ConfigureAwait(false);
             }
 
-            var raceInformation = await EnsureRaceInformationAsync(steamId, currentRace, initialAmountToLevel);
+            var raceInformation = await EnsureRaceInformationAsync(steamId, currentRace, initialAmountToLevel).ConfigureAwait(false);
             if (raceInformation == null)
             {
                 PersistentLogger.Error(nameof(LoadPlayerFromDatabase), $"Failed to load race information for steamid={steamId}, race='{currentRace}'.");
@@ -147,7 +147,7 @@ namespace WarcraftPlugin.Core
             var steamId = (long)player.SteamID;
             if (_persistence.TryGetDirty(steamId, out _))
             {
-                await SavePlayerToDatabase(player);
+                await SavePlayerToDatabase(player).ConfigureAwait(false);
             }
 
             return await _dispatcher.ExecuteAsync("load-class-information", connection =>
@@ -157,7 +157,7 @@ namespace WarcraftPlugin.Core
                     FROM `raceinformation`
                     WHERE `steamid` = @steamid;",
                     new { steamid = steamId }).AsList();
-            });
+            }).ConfigureAwait(false);
         }
 
         internal Task SavePlayerToDatabase(CCSPlayerController player)
@@ -184,8 +184,8 @@ namespace WarcraftPlugin.Core
 
         internal async Task FlushAllDirtyAndDrainAsync(string reason, TimeSpan timeout)
         {
-            await FlushDirtyPlayersAsync(reason).WaitAsync(timeout);
-            await _dispatcher.DrainAsync(reason, timeout);
+            await FlushDirtyPlayersAsync(reason).WaitAsync(timeout).ConfigureAwait(false);
+            await _dispatcher.DrainAsync(reason, timeout).ConfigureAwait(false);
         }
 
         internal Task SaveClients()
@@ -246,7 +246,7 @@ namespace WarcraftPlugin.Core
                     FROM `players`
                     WHERE `steamid` = @steamid;",
                     new { steamid = steamId });
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task<ClassInformation> EnsureRaceInformationAsync(long steamId, string raceName, int initialAmountToLevel)
@@ -276,7 +276,7 @@ namespace WarcraftPlugin.Core
                         steamid = steamId,
                         racename = raceName
                     });
-            });
+            }).ConfigureAwait(false);
         }
 
         private Task SaveCurrentClassAsync(long steamId, string playerName, string className, int initialAmountToLevel)
@@ -319,7 +319,7 @@ namespace WarcraftPlugin.Core
                 return;
 
             var timer = Stopwatch.StartNew();
-            await _dispatcher.ExecuteAsync($"flush:{reason}", connection => SaveSnapshotBatch(connection, dirtyPlayers));
+            await _dispatcher.ExecuteAsync($"flush:{reason}", connection => SaveSnapshotBatch(connection, dirtyPlayers)).ConfigureAwait(false);
             _persistence.CompleteFlush(dirtyPlayers);
             timer.Stop();
 

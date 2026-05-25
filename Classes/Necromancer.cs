@@ -66,6 +66,13 @@ namespace WarcraftPlugin.Classes
             }
         }
 
+        public override void PlayerChangingToAnotherRace()
+        {
+            KillZombies();
+            ResetPoisonSmokes();
+            base.PlayerChangingToAnotherRace();
+        }
+
         private void PlayerSpawn(EventPlayerSpawn spawn) => OnPlayerSpawned();
 
         private void PlayerDeath(EventPlayerDeath death)
@@ -189,7 +196,9 @@ namespace WarcraftPlugin.Classes
 
             for (int i = 0; i < _maxZombies; i++)
             {
-                _zombies.Add(new Zombie(Player));
+                var zombie = new Zombie(Player);
+                if (zombie.IsValid)
+                    _zombies.Add(zombie);
             }
 
             _zombieUpdateTimer?.Kill();
@@ -201,7 +210,7 @@ namespace WarcraftPlugin.Classes
                 var zombieIndex = 0;
                 foreach (var zombie in _zombies)
                 {
-                    if (zombie.Entity.IsValid)
+                    if (zombie.IsValid)
                     {
                         zombieIndex++;
                         zombie.FavouritePosition = (zombieIndex * 100) / zombieCount;
@@ -222,7 +231,7 @@ namespace WarcraftPlugin.Classes
         {
             foreach (var zombie in _zombies)
             {
-                if (zombie.Entity.IsValid)
+                if (zombie.IsValid)
                     zombie.SetEnemy(enemy.UserId);
             }
         }
@@ -278,7 +287,7 @@ namespace WarcraftPlugin.Classes
                 var playersInHurtZone = PlayerCache.GetPlayers()
                     .Where(x =>
                     {
-                        if (!x.PawnIsAlive || x.AllyOf(Owner)) return false;
+                        if (!x.IsAlive() || x.AllyOf(Owner)) return false;
                         var pawn = x.PlayerPawn?.Value;
                         return pawn != null && _hurtBox.Contains(pawn.AbsOrigin.Clone().Add(z: 20));
                     })

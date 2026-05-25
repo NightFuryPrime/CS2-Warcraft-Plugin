@@ -246,7 +246,7 @@ namespace WarcraftPlugin.Classes
             RefreshPlayerState(target);
             if (target.IsValid && target.PawnIsAlive)
             {
-                target.PlayerPawn.Value.SetColor(Color.White);
+                target.GetWarcraftPlayer()?.GetClass()?.SetDefaultAppearance();
             }
         }
     }

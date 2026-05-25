@@ -100,7 +100,7 @@ namespace WarcraftPlugin.Classes
         private CCSPlayerController GetRandomFallenAlly()
         {
             var deadTeamPlayers = PlayerCache.GetPlayers()
-                .Where(x => x.Team == Player.Team && !x.PawnIsAlive && x.IsValid)
+                .Where(x => BotControl.IsValidReviveTarget(Player, x))
                 .ToList();
 
             if (!deadTeamPlayers.Any())
@@ -112,7 +112,7 @@ namespace WarcraftPlugin.Classes
 
         private bool DivineResurrection(CCSPlayerController playerToRevive)
         {
-            if (playerToRevive == null || !playerToRevive.IsValid)
+            if (!BotControl.IsValidReviveTarget(Player, playerToRevive))
             {
                 Player.PrintToChat(" " + Localizer["paladin.revive.none"]);
                 return false;

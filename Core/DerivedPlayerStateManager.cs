@@ -43,6 +43,14 @@ internal static class DerivedPlayerStateManager
         States.Remove(player.Handle);
     }
 
+    internal static void ResetPlayer(IntPtr handle)
+    {
+        if (handle == IntPtr.Zero)
+            return;
+
+        States.Remove(handle);
+    }
+
     internal static void ClearAll() => States.Clear();
 
     internal static void SetVelocityMultiplier(CCSPlayerController player, string key, float multiplier)

@@ -1,4 +1,5 @@
 ﻿using CounterStrikeSharp.API.Core;
+using System;
 using System.Collections.Generic;
 using WarcraftPlugin.Core;
 using WarcraftPlugin.Helpers;
@@ -9,6 +10,9 @@ namespace WarcraftPlugin.Models
     public class WarcraftPlayer
     {
         internal int Index => Player?.Slot ?? 0;
+        internal int CapturedSlot { get; }
+        internal IntPtr CapturedHandle { get; }
+        internal ulong CapturedSteamId { get; }
         internal bool IsMaxLevel => currentLevel == WarcraftPlugin.MaxLevel;
         internal CCSPlayerController GetPlayer() => Player;
 
@@ -34,6 +38,9 @@ namespace WarcraftPlugin.Models
         internal WarcraftPlayer(CCSPlayerController player)
         {
             Player = player;
+            CapturedSlot = player?.Slot ?? -1;
+            CapturedHandle = player?.Handle ?? IntPtr.Zero;
+            CapturedSteamId = player?.SteamID ?? 0;
         }
 
         internal void LoadClassInformation(ClassInformation dbRace, XpSystem xpSystem)

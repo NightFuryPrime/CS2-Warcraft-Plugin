@@ -120,6 +120,35 @@ namespace WarcraftPlugin
             }
         }
 
+        private WarcraftPlayer RemoveWcPlayerByIdentity(int slot, IntPtr handle)
+        {
+            WarcraftPlayer removedPlayer = null;
+
+            foreach (var entry in WarcraftPlayers)
+            {
+                var wcPlayer = entry.Value;
+                if (wcPlayer == null)
+                    continue;
+
+                var slotMatches = slot >= 0 && wcPlayer.CapturedSlot == slot;
+                var handleMatches = handle != IntPtr.Zero && (entry.Key == handle || wcPlayer.CapturedHandle == handle);
+                if (!slotMatches && !handleMatches)
+                    continue;
+
+                if (WarcraftPlayers.TryRemove(entry.Key, out var removed))
+                {
+                    removedPlayer ??= removed;
+                }
+            }
+
+            if (removedPlayer == null && handle != IntPtr.Zero && WarcraftPlayers.TryRemove(handle, out var byHandle))
+            {
+                removedPlayer = byHandle;
+            }
+
+            return removedPlayer;
+        }
+
         private WarcraftPlayer CreateBotPlayer(CCSPlayerController player)
         {
             var classes = classManager.GetAllClasses();
@@ -137,6 +166,20 @@ namespace WarcraftPlugin
             var wcPlayer = new WarcraftPlayer(player);
             wcPlayer.LoadClassInformation(info, XpSystem);
             AbilityProgression.AutoSpendSkillPoints(wcPlayer);
+            return wcPlayer;
+        }
+
+        private WarcraftPlayer GetOrCreateBotWcPlayer(CCSPlayerController player)
+        {
+            if (player == null || !player.IsValid || !player.IsBot)
+                return null;
+
+            var wcPlayer = GetWcPlayer(player);
+            if (wcPlayer != null)
+                return wcPlayer;
+
+            wcPlayer = CreateBotPlayer(player);
+            SetWcPlayer(player, wcPlayer);
             return wcPlayer;
         }
 
@@ -602,12 +645,27 @@ namespace WarcraftPlugin
         {
             PlayerCache.Invalidate();
             var player = new CCSPlayerController(NativeAPI.GetEntityFromIndex(slot + 1));
-            // No bots or invalid/non-existent clients.
-            if (!player.IsValid || player.IsBot) return;
+            var liveHandle = player?.IsValid == true ? player.Handle : IntPtr.Zero;
+            var removedPlayer = RemoveWcPlayerByIdentity(slot, liveHandle);
+            var cleanupHandle = removedPlayer?.CapturedHandle ?? liveHandle;
 
-            DerivedPlayerStateManager.ResetPlayer(player);
-            SetWcPlayer(player, null);
-            WeaponInsuranceService.Clear(player);
+            if (cleanupHandle != IntPtr.Zero)
+            {
+                EffectManager?.DestroyEffects(cleanupHandle, EffectDestroyFlags.OnDisconnect);
+                DerivedPlayerStateManager.ResetPlayer(cleanupHandle);
+            }
+
+            if (removedPlayer != null)
+            {
+                CooldownManager.Clear(removedPlayer);
+                WeaponInsuranceService.Clear(removedPlayer.CapturedSteamId, removedPlayer.CapturedHandle);
+            }
+
+            if (player?.IsValid == true)
+            {
+                DerivedPlayerStateManager.ResetPlayer(player);
+                WeaponInsuranceService.Clear(player);
+            }
         }
 
         private void StartSaveClientsTimer()
@@ -964,28 +1022,76 @@ namespace WarcraftPlugin
 
         private void UltimatePressed(CCSPlayerController client, CommandInfo commandinfo)
         {
+            if (client == null || !client.IsValid)
+                return;
+
+            var resolution = BotControl.ResolveUltimateController(client);
+            if (!resolution.Success)
+            {
+                client.PrintToCenter(" Warcraft bot control is not ready yet.");
+                client.PlayLocalSound("sounds/common/talk.vsnd");
+                PersistentLogger.Error(
+                    nameof(UltimatePressed),
+                    $"Ultimate bot-control resolution failed. reason={resolution.FailureReason}, client='{client.GetRealPlayerName()}', clientHandle={client.Handle}, controllingBot={client.ControllingBot}, originalControllerValid={client.OriginalControllerOfCurrentPawn?.Value?.IsValid}");
+                return;
+            }
+
+            var abilityController = resolution.Controller;
+
             // CRITICAL FIX: Prevent dead players from using ultimate abilities
-            if (!client.IsAlive())
+            if (!abilityController.IsAlive())
             {
                 client.PrintToCenter(" You must be alive to use your ultimate!");
                 client.PlayLocalSound("sounds/common/talk.vsnd");
                 return;
             }
 
-            var warcraftPlayer = client.GetWarcraftPlayer();
+            var warcraftPlayer = abilityController.IsBot
+                ? GetOrCreateBotWcPlayer(abilityController)
+                : abilityController.GetWarcraftPlayer();
+
+            var warcraftClass = warcraftPlayer?.GetClass();
+            if (warcraftPlayer == null || warcraftClass == null)
+            {
+                client.PrintToCenter(" Warcraft data is not ready yet.");
+                client.PlayLocalSound("sounds/common/talk.vsnd");
+                PersistentLogger.Error(
+                    nameof(UltimatePressed),
+                    $"Ultimate requested without Warcraft data. client='{client.GetRealPlayerName()}', controllingBot={client.ControllingBot}, abilityControllerHandle={abilityController.Handle}");
+                return;
+            }
+
+            DebugLog(
+                $"Ultimate resolved: client='{client.GetRealPlayerName()}' clientHandle={client.Handle} controllingBot={client.ControllingBot} " +
+                $"abilityOwner='{abilityController.GetRealPlayerName()}' abilityOwnerHandle={abilityController.Handle} " +
+                $"class='{warcraftClass.InternalName}' pawnHandle={abilityController.PlayerPawn?.Value?.Handle ?? IntPtr.Zero}");
+
             if (warcraftPlayer.GetAbilityLevel(3) < 1)
             {
                 client.PrintToCenter(" " + Localizer["no.ultimate"]);
                 client.PlayLocalSound("sounds/common/talk.vsnd");
             }
-            else if (!warcraftPlayer.GetClass().IsAbilityReady(3))
+            else if (!warcraftClass.IsAbilityReady(3))
             {
-                client.PrintToCenter(" " + Localizer["ultimate.countdown", Math.Ceiling(warcraftPlayer.GetClass().AbilityCooldownRemaining(3))]);
+                client.PrintToCenter(" " + Localizer["ultimate.countdown", Math.Ceiling(warcraftClass.AbilityCooldownRemaining(3))]);
                 client.PlayLocalSound("sounds/common/talk.vsnd");
             }
             else
             {
-                GetWcPlayer(client)?.GetClass()?.InvokeAbility(3);
+                try
+                {
+                    warcraftClass.InvokeAbility(3);
+                }
+                catch (Exception ex)
+                {
+                    PersistentLogger.Error(
+                        nameof(UltimatePressed),
+                        $"Ultimate failed. client='{client.GetRealPlayerName()}', abilityOwner='{abilityController.GetRealPlayerName()}', class='{warcraftClass.InternalName}', controllingBot={client.ControllingBot}.",
+                        ex,
+                        mirrorConsole: true);
+                    client.PrintToCenter(" Ultimate failed. Check server logs.");
+                    client.PlayLocalSound("sounds/common/talk.vsnd");
+                }
             }
         }
 

@@ -94,8 +94,12 @@ namespace WarcraftPlugin.Models
         {
             RunWhenPawnReady(() =>
             {
+                var wcPlayer = Player.GetWarcraftPlayer();
+                if (wcPlayer == null)
+                    return;
+
                 var pawn = Player.PlayerPawn.Value;
-                pawn.SetColor(GenerateShade(DefaultColor, Player.GetWarcraftPlayer().currentLevel));
+                pawn.SetColor(GenerateShade(DefaultColor, wcPlayer.currentLevel));
 
                 var model = Player.Team == CsTeam.CounterTerrorist ? DefaultModel?.CTModel : DefaultModel?.TModel;
 

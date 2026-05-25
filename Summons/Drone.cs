@@ -40,6 +40,12 @@ namespace WarcraftPlugin.Summons
         private void Activate()
         {
             Deactivate();
+            if (_owner?.IsValid != true)
+            {
+                PersistentLogger.Error(nameof(Drone), "Skipping drone activation because owner is invalid.");
+                return;
+            }
+
             var ownerPawn = _owner.PlayerPawn?.Value;
             if (ownerPawn == null || !ownerPawn.IsValid)
             {
@@ -130,6 +136,10 @@ namespace WarcraftPlugin.Summons
             _model?.RemoveIfValid();
             _drone?.RemoveIfValid();
             _lazerDot?.RemoveIfValid();
+            _turret = null;
+            _model = null;
+            _drone = null;
+            _lazerDot = null;
             foreach (var timer in _shotTimers)
             {
                 timer?.Kill();
@@ -143,6 +153,9 @@ namespace WarcraftPlugin.Summons
 
         internal void Update()
         {
+            if (_owner?.IsValid != true)
+                return;
+
             var ownerPawn = _owner.PlayerPawn?.Value;
             if (!_owner.IsValid || ownerPawn == null || !ownerPawn.IsValid || _drone == null || !_drone.IsValid) return;
             var nextDronePosition = _owner.CalculatePositionInFront(Position);
@@ -156,15 +169,22 @@ namespace WarcraftPlugin.Summons
             //Update laser to point at target
             if (_target != null)
             {
+                if (_turret == null || !_turret.IsValid)
+                    return;
+
                 _lazerDot = Warcraft.DrawLaserBetween(_turret.CalculatePositionInFront(new Vector(0, 30, 2)), _target, Color.FromArgb(15, 255, 0, 0), 0.2f, 0.2f);
             }
         }
 
         internal void EnemySpotted(CCSPlayerController enemy)
         {
+            var wcPlayer = _owner?.GetWarcraftPlayer();
+            if (_owner?.IsValid != true || wcPlayer == null)
+                return;
+
             if (!IsFireRateCooldown)
             {
-                var droneLevel = _owner.GetWarcraftPlayer().GetAbilityLevel(0);
+                var droneLevel = wcPlayer.GetAbilityLevel(0);
                 var timesToShoot = droneLevel + 3;
 
                 TryShootTarget(enemy);
@@ -180,6 +200,10 @@ namespace WarcraftPlugin.Summons
 
         private void TryShootTarget(CCSPlayerController target, bool isRocket = false)
         {
+            var ownerPawn = _owner?.PlayerPawn?.Value;
+            if (_owner?.IsValid != true || ownerPawn == null || !ownerPawn.IsValid || _owner.GetWarcraftPlayer() == null)
+                return;
+
             var targetPawn = target?.PlayerPawn?.Value;
             if (target == null || !target.IsAlive() || targetPawn == null || !targetPawn.IsValid)
                 return;
@@ -226,16 +250,23 @@ namespace WarcraftPlugin.Summons
 
         private void Shoot(Vector muzzle, CCSPlayerController target)
         {
+            var wcPlayer = _owner?.GetWarcraftPlayer();
+            if (_turret == null || !_turret.IsValid || wcPlayer == null || _owner?.IsValid != true)
+                return;
+
             //particle effect from turret
             Warcraft.SpawnParticle(muzzle, "particles/weapons/cs_weapon_fx/weapon_muzzle_flash_assaultrifle.vpcf", 1);
             _turret.EmitSound("Weapon_M4A1.Silenced");
 
             //dodamage to target
-            target.TakeDamage(_owner.GetWarcraftPlayer().GetAbilityLevel(0) * 1, _owner, KillFeedIcon.controldrone);
+            target.TakeDamage(wcPlayer.GetAbilityLevel(0) * 1, _owner, KillFeedIcon.controldrone);
         }
 
         private void FireRocket(Vector muzzle, Vector endPos)
         {
+            if (_turret == null || !_turret.IsValid)
+                return;
+
             var ownerPawn = _owner.PlayerPawn?.Value;
             if (ownerPawn == null || !ownerPawn.IsValid)
                 return;

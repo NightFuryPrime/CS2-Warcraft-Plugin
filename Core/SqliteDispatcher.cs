@@ -77,7 +77,7 @@ namespace WarcraftPlugin.Core
 
             try
             {
-                await DrainAsync(reason, timeout);
+                await DrainAsync(reason, timeout).ConfigureAwait(false);
             }
             finally
             {
@@ -86,7 +86,7 @@ namespace WarcraftPlugin.Core
 
                 try
                 {
-                    await _workerTask.WaitAsync(timeout);
+                    await _workerTask.WaitAsync(timeout).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -104,7 +104,7 @@ namespace WarcraftPlugin.Core
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
-                while (await _queue.Reader.WaitToReadAsync(_shutdownCts.Token))
+                while (await _queue.Reader.WaitToReadAsync(_shutdownCts.Token).ConfigureAwait(false))
                 {
                     while (_queue.Reader.TryRead(out var workItem))
                     {

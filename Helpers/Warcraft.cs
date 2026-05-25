@@ -318,12 +318,20 @@ namespace WarcraftPlugin.Helpers
         /// <returns>Returns the created CSmokeGrenadeProjectile object.</returns>
         public static CSmokeGrenadeProjectile SpawnSmoke(Vector pos, CCSPlayerPawn attacker, Color color)
         {
+            return SpawnInstantSmoke(pos, attacker, color);
+        }
+
+        public static CSmokeGrenadeProjectile SpawnInstantSmoke(Vector pos, CCSPlayerPawn attacker, Color color)
+        {
             var smokeProjectile = CreateEntityByNameSafe<CSmokeGrenadeProjectile>("smokegrenade_projectile");
-            if (smokeProjectile == null) return null;
+            if (smokeProjectile == null)
+            {
+                PersistentLogger.Warn(nameof(Warcraft), "Failed to create instant smoke projectile.");
+                return null;
+            }
 
             pos.Z += 5;
             smokeProjectile.Teleport(pos, new QAngle(), Vector.Zero);
-            smokeProjectile.DispatchSpawn();
 
             if (attacker != null)
             {
@@ -337,10 +345,31 @@ namespace WarcraftPlugin.Helpers
             smokeProjectile.SmokeColor.Y = color.G;
             smokeProjectile.SmokeColor.Z = color.B;
             Schema.SetSchemaValue(smokeProjectile.Handle, "CSmokeGrenadeProjectile", "m_vSmokeDetonationPos", pos);
-            smokeProjectile.DetonateTime = 0;
+            smokeProjectile.DispatchSpawn();
             smokeProjectile.AcceptInput("InitializeSpawnFromWorld");
+            ForceSmokeDetonation(smokeProjectile, pos);
+
+            Server.NextFrame(() => ForceSmokeDetonation(smokeProjectile, pos));
 
             return smokeProjectile;
+        }
+
+        private static void ForceSmokeDetonation(CSmokeGrenadeProjectile smokeProjectile, Vector pos)
+        {
+            if (smokeProjectile == null || !smokeProjectile.IsValid)
+                return;
+
+            try
+            {
+                Schema.SetSchemaValue(smokeProjectile.Handle, "CSmokeGrenadeProjectile", "m_vSmokeDetonationPos", pos);
+                smokeProjectile.DetonateTime = 0;
+                smokeProjectile.AcceptInput("InitializeSpawnFromWorld");
+                smokeProjectile.AcceptInput("Detonate");
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Warn(nameof(Warcraft), $"Failed to force instant smoke detonation: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -425,7 +454,7 @@ namespace WarcraftPlugin.Helpers
 
             pawn.Health = health;
 
-            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+            SafeSetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
         /// <summary>
@@ -439,7 +468,7 @@ namespace WarcraftPlugin.Helpers
 
             controller.PlayerPawn.Value.ArmorValue = armor;
 
-            Utilities.SetStateChanged(controller.PlayerPawn.Value, "CCSPlayerPawn", "m_ArmorValue");
+            SafeSetStateChanged(controller.PlayerPawn.Value, "CCSPlayerPawn", "m_ArmorValue");
         }
 
         /// <summary>
@@ -514,7 +543,24 @@ namespace WarcraftPlugin.Helpers
             if (entity == null || !entity.IsValid) return;
 
             entity.Render = color;
-            Utilities.SetStateChanged(entity, "CBaseModelEntity", "m_clrRender");
+            SafeSetStateChanged(entity, "CBaseModelEntity", "m_clrRender");
+        }
+
+        public static bool SafeSetStateChanged(CBaseEntity entity, string className, string fieldName, int extraOffset = 0)
+        {
+            if (entity == null || !entity.IsValid)
+                return false;
+
+            try
+            {
+                Utilities.SetStateChanged(entity, className, fieldName, extraOffset);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                PersistentLogger.Warn(nameof(SafeSetStateChanged), $"Skipped invalid state change {className}.{fieldName}: {ex.Message}", mirrorConsole: false);
+                return false;
+            }
         }
 
         /// <summary>
@@ -545,7 +591,7 @@ namespace WarcraftPlugin.Helpers
                 skeletonInstance.Scale = scale;
                 Server.NextFrame(() =>
                 {
-                    Utilities.SetStateChanged(entity, "CBaseEntity", "m_CBodyComponent");
+                    SafeSetStateChanged(entity, "CBaseEntity", "m_CBodyComponent");
                 });
             }
         }
@@ -578,7 +624,7 @@ namespace WarcraftPlugin.Helpers
             if (!player.IsAlive()) return;
 
             player.PlayerPawn.Value.HealthShotBoostExpirationTime = Server.CurrentTime + duration;
-            Utilities.SetStateChanged(player.PlayerPawn.Value, "CCSPlayerPawn", "m_flHealthShotBoostExpirationTime");
+            SafeSetStateChanged(player.PlayerPawn.Value, "CCSPlayerPawn", "m_flHealthShotBoostExpirationTime");
         }
 
         /// <summary>

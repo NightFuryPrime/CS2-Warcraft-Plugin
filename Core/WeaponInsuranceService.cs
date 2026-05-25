@@ -148,6 +148,15 @@ namespace WarcraftPlugin.Core
             States.Remove(key);
         }
 
+        internal static void Clear(ulong steamId, IntPtr handle)
+        {
+            if (steamId != 0)
+                States.Remove(steamId);
+
+            if (handle != IntPtr.Zero)
+                States.Remove((ulong)handle.ToInt64());
+        }
+
         internal static void Reset()
         {
             States.Clear();

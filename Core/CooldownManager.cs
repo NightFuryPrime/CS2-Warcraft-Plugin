@@ -103,6 +103,14 @@ namespace WarcraftPlugin.Core
             WarcraftPlugin.Instance.CooldownManager.UnregisterPlayer(player);
         }
 
+        internal static void Clear(WarcraftPlayer player)
+        {
+            if (player == null)
+                return;
+
+            WarcraftPlugin.Instance?.CooldownManager?.UnregisterPlayer(player);
+        }
+
         private static void PlayEffects(WarcraftPlayer wcplayer, int abilityIndex)
         {
             var player = wcplayer?.GetPlayer();

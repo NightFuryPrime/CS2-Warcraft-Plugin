@@ -8,6 +8,9 @@ using WarcraftPlugin.Core.Effects;
 using WarcraftPlugin.Core.Effects.Shared;
 using System.Collections.Generic;
 using WarcraftPlugin.Events.ExtendedEvents;
+using WarcraftPlugin.Diagnostics;
+
+using CounterStrikeSharp.API;
 
 namespace WarcraftPlugin.Classes
 {
@@ -34,6 +37,7 @@ namespace WarcraftPlugin.Classes
             RegisterHooks()
                 .Hook<EventPlayerHurtOther>(PlayerHurtOther)
                 .Hook<EventPlayerHurt>(PlayerHurt)
+                .Hook<EventPlayerDeath>(PlayerDeath)
                 .Hook<EventPlayerKilledOther>(PlayerKilledOther)
                 .Hook<EventItemEquip>(PlayerItemEquip)
                 .Hook<EventPlayerSpawn>(PlayerSpawn);
@@ -58,36 +62,58 @@ namespace WarcraftPlugin.Classes
                 return;
             }
 
-            if (WarcraftPlayer.GetAbilityLevel(3) < 1 || !IsAbilityReady(3)) return;
+        }
 
+        private void PlayerDeath(EventPlayerDeath @event)
+        {
+            if (_isPlayerInvulnerable || WarcraftPlayer.GetAbilityLevel(3) < 1 || !IsAbilityReady(3)) return;
             var pawn = Player.PlayerPawn?.Value;
-            if (pawn == null) return;
+            var smokePosition = pawn?.AbsOrigin?.Clone();
 
-            if (pawn.Health <= 0)
+            StartCooldown(3);
+            _isPlayerInvulnerable = true;
+
+            Server.NextFrame(() =>
             {
-                StartCooldown(3);
-                _isPlayerInvulnerable = true;
-                @event.IgnoreDamage();
-                Player.SetHp(1);
-                Player.Speed = 0;
-                TriggerInvisibility(5);
+                if (Player?.IsValid != true)
+                    return;
 
-                //spawn smoke
-                var smoke = Warcraft.SpawnSmoke(pawn.AbsOrigin.Clone().Add(z: 5), pawn, Color.Black);
-                smoke?.Teleport(velocity: Vector.Zero);
+                Player.Respawn();
+                Server.NextFrame(() => ApplySmokebombRespawn(smokePosition));
+            });
+        }
 
-                Player.ExecuteClientCommand("slot3"); //pull out knife
-
-                var smokeEffect = Warcraft.SpawnParticle(pawn.AbsOrigin.Clone().Add(z: 90), "particles/maps/de_house/house_fireplace.vpcf");
-                smokeEffect?.SetParent(pawn);
-
-                WarcraftPlugin.Instance.AddTimer(2f, () =>
-                {
-                    if (!Player.IsValid) return;
-                    _isPlayerInvulnerable = false;
-                    Player.Speed = 1;
-                });
+        private void ApplySmokebombRespawn(Vector smokePosition)
+        {
+            if (!Player.TryGetAlivePawn(out var pawn))
+            {
+                _isPlayerInvulnerable = false;
+                return;
             }
+
+            Player.SetHp(1);
+            Player.Speed = 0;
+            TriggerInvisibility(5);
+
+            var smokeOrigin = smokePosition?.Clone() ?? pawn.AbsOrigin.Clone();
+            var smoke = Warcraft.SpawnInstantSmoke(smokeOrigin, pawn, Color.Black);
+            if (smoke == null)
+            {
+                PersistentLogger.Warn(nameof(Rogue), $"Smokebomb failed to create smoke for '{Player.GetRealPlayerName()}'.");
+            }
+
+            Player.ExecuteClientCommand("slot3"); // pull out knife
+
+            var smokeEffect = Warcraft.SpawnParticle(pawn.AbsOrigin.Clone().Add(z: 90), "particles/maps/de_house/house_fireplace.vpcf");
+            smokeEffect?.SetParent(pawn);
+
+            WarcraftPlugin.Instance.AddTimer(2f, () =>
+            {
+                if (Player?.IsValid != true) return;
+                _isPlayerInvulnerable = false;
+                if (Player.IsAlive())
+                    Player.Speed = 1;
+            });
         }
 
         private void PlayerItemEquip(EventItemEquip @event)

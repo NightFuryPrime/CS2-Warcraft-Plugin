@@ -20,6 +20,7 @@ namespace WarcraftPlugin.Summons
 
         internal int FavouritePosition { get; set; } = 1;
         internal CChicken Entity { get; set; }
+        internal bool IsValid => Entity != null && Entity.IsValid;
         internal CCSPlayerController Owner { get; }
         internal bool IsFollowingLeader { get; private set; }
         internal CCSPlayerController Target { get; set; }
@@ -58,8 +59,8 @@ namespace WarcraftPlugin.Summons
 
         internal void Update()
         {
-            if (Entity == null || !Entity.IsValid) return;
-            if (!Owner.PawnIsAlive)
+            if (!IsValid) return;
+            if (!Owner.IsAlive())
             {
                 Kill();
                 return; // Early return to prevent further execution
@@ -70,7 +71,7 @@ namespace WarcraftPlugin.Summons
                 FollowLeader();
             }
 
-            if (Target != null && Target.PawnIsAlive)
+            if (Target.IsAlive())
             {
                 if (LastLeapTick == 0 || LastLeapTick + _leapCooldown + RandomProvider.NextDouble() < Server.TickedTime)
                 {
@@ -162,15 +163,16 @@ namespace WarcraftPlugin.Summons
         internal void Kill()
         {
             Entity.RemoveIfValid();
+            Entity = null;
         }
 
         internal void SetEnemy(CCSPlayerController enemy)
         {
-            if (!enemy.IsAlive()) return;
+            if (!IsValid || !enemy.IsAlive()) return;
             var enemyPawn = enemy.PlayerPawn?.Value;
             if (enemyPawn == null || !enemyPawn.IsValid) return;
 
-            if (Target != null && Target.PawnIsAlive)
+            if (Target.IsAlive())
             {
                 return;
             }
@@ -187,6 +189,9 @@ namespace WarcraftPlugin.Summons
 
         private void FollowLeader()
         {
+            if (!IsValid)
+                return;
+
             IsFollowingLeader = true;
             Target = null;
             var ownerPawn = Owner.PlayerPawn?.Value;

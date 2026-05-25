@@ -90,20 +90,20 @@ namespace WarcraftPlugin.Classes
         {
             if (WarcraftPlayer.GetAbilityLevel(3) < 1 || !IsAbilityReady(3)) return;
 
+            var deadTeamPlayers = PlayerCache.GetPlayers()
+                .Where(x => BotControl.IsValidReviveTarget(Player, x))
+                .ToList();
+            if (!deadTeamPlayers.Any())
+            {
+                Player.PrintToChat(" " + Localizer["death_weaver.revive.none"]);
+                return;
+            }
+
             StartCooldown(3);
 
             if (!Warcraft.RollChance((float)(RaiseSkeletonChance * 100)))
             {
                 Player.PrintToChat($" {Localizer["death_weaver.revive.fail"]}");
-                return;
-            }
-
-            var deadTeamPlayers = PlayerCache.GetPlayers()
-                .Where(x => x.Team == Player.Team && !x.PawnIsAlive && x.IsValid)
-                .ToList();
-            if (!deadTeamPlayers.Any())
-            {
-                Player.PrintToChat(" " + Localizer["death_weaver.revive.none"]);
                 return;
             }
 

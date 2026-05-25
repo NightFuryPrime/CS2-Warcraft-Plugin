@@ -98,10 +98,18 @@ namespace WarcraftPlugin.Core.Effects
             if (player == null)
                 return;
 
+            DestroyEffects(player.Handle, flag);
+        }
+
+        internal void DestroyEffects(IntPtr ownerHandle, EffectDestroyFlags flag)
+        {
+            if (ownerHandle == IntPtr.Zero)
+                return;
+
             for (int i = _effects.Count - 1; i >= 0; i--)
             {
                 var effect = _effects[i];
-                if (effect.Owner?.Handle == player.Handle && effect.ShouldDestroy(flag))
+                if (effect.Owner?.Handle == ownerHandle && effect.ShouldDestroy(flag))
                 {
                     RemoveAt(i, effect.FinishOnDestroy);
                 }

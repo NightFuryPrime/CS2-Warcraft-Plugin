@@ -25,6 +25,11 @@ namespace WarcraftPlugin.Classes
             CTModel = "characters/models/ctm_st6/ctm_st6_variantn.vmdl"
         };
 
+        public override List<string> PreloadResources =>
+        [
+            "characters/models/ctm_st6/ctm_st6_variantn.vmdl"
+        ];
+
         public override Color DefaultColor => Color.Violet;
 
         private readonly List<IWarcraftAbility> _abilities =
@@ -53,8 +58,9 @@ namespace WarcraftPlugin.Classes
         private void PlayerHurt(EventPlayerHurt @event)
         {
             var attacker = @event.Attacker;
+            var evasionLevel = Math.Clamp(WarcraftPlayer.GetAbilityLevel(1), 0, WarcraftPlugin.MaxSkillLevel);
             // Evasion: Chance to dodge damage
-            if (Warcraft.RollAbilityCheck(WarcraftPlayer.GetAbilityLevel(1), 30))
+            if (@event.DmgHealth > 0 && evasionLevel > 0 && Warcraft.RollAbilityCheck(evasionLevel, 30))
             {
                 Player.PrintToChat(" " + Localizer["shadowblade.evaded", @event.DmgHealth]);
                 attacker?.PrintToChat(" " + Localizer["shadowblade.evaded", Player.GetRealPlayerName()]);
@@ -70,7 +76,8 @@ namespace WarcraftPlugin.Classes
             }
 
             // Shadowstep
-            if (attacker != null && attacker.IsValid && attacker.IsAlive() && Warcraft.RollAbilityCheck(WarcraftPlayer.GetAbilityLevel(0), 20))
+            var shadowstepLevel = Math.Clamp(WarcraftPlayer.GetAbilityLevel(0), 0, WarcraftPlugin.MaxSkillLevel);
+            if (@event.DmgHealth > 0 && attacker != null && attacker.IsValid && attacker.IsAlive() && shadowstepLevel > 0 && Warcraft.RollAbilityCheck(shadowstepLevel, 20))
             {
                 if (!TryShadowstepTeleport(attacker))
                 {

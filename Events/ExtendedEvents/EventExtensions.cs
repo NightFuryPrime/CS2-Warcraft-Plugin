@@ -1,4 +1,5 @@
 ﻿using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API;
 using System;
 using WarcraftPlugin.Helpers;
 using WarcraftPlugin.Models;
@@ -27,6 +28,7 @@ namespace WarcraftPlugin.Events.ExtendedEvents
                     if (damageArmor > 0)
                     {
                         victimPawn.ArmorValue = Math.Max(0, victimPawn.ArmorValue - damageArmor);
+                        Utilities.SetStateChanged(victimPawn, "CCSPlayerPawn", "m_ArmorValue");
                     }
 
                     victim.TakeDamage(damageHealth, attacker, killFeedIcon, abilityName: abilityName);
@@ -35,6 +37,8 @@ namespace WarcraftPlugin.Events.ExtendedEvents
 
                 victimPawn.Health = projectedHealth;
                 victimPawn.ArmorValue = Math.Max(0, victimPawn.ArmorValue - damageArmor);
+                Utilities.SetStateChanged(victimPawn, "CBaseEntity", "m_iHealth");
+                Utilities.SetStateChanged(victimPawn, "CCSPlayerPawn", "m_ArmorValue");
                 @event.DmgHealth += damageHealth;
                 @event.DmgArmor += damageArmor;
 
@@ -76,6 +80,8 @@ namespace WarcraftPlugin.Events.ExtendedEvents
                 int ignoredArmorDamage = Math.Clamp(armorDamageToIgnore ?? @event.DmgArmor, 0, @event.DmgArmor);
                 victimPawn.Health += ignoredHealthDamage;
                 victimPawn.ArmorValue += ignoredArmorDamage;
+                Utilities.SetStateChanged(victimPawn, "CBaseEntity", "m_iHealth");
+                Utilities.SetStateChanged(victimPawn, "CCSPlayerPawn", "m_ArmorValue");
                 @event.DmgHealth -= ignoredHealthDamage;
                 @event.DmgArmor -= ignoredArmorDamage;
             }

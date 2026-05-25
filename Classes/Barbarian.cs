@@ -318,7 +318,7 @@ namespace WarcraftPlugin.Classes
             RefreshPlayerState(Owner);
 
             if (!TryGetAliveOwnerPawn(out var pawn)) return;
-            pawn.SetColor(Color.White);
+            Owner.GetWarcraftPlayer()?.GetClass()?.SetDefaultAppearance();
             pawn.SetScale(1);
         }
     }
