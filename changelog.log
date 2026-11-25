@@ -1,0 +1,231 @@
+﻿ðŸ“¦ Warcraft 4.0.5 â€” Release 2026-03-11
+ðŸ›¡ï¸ Stability, API Update, and Bug Fixes
+- Bumped the plugin runtime version to 4.0.5.
+- Updated CounterStrikeSharp.API to the latest stable version, 1.0.363.
+- Fixed a critical exploit where dead players could activate ultimate abilities while spectating.
+- Fixed the Mage crash caused by a NullReferenceException in Mana Shield startup.
+- Performed a broad hardening pass across all 14 classes to reduce NullReferenceExceptions during pawn death, disconnects, and delayed callbacks.
+- Fixed ChangeClass race conditions by separating database class writes from the live in-memory player object and applying the final player swap safely on the game thread.
+- Hardened EventSystem, Warcraft helpers, and effect handling with stronger validity checks for players, pawns, and services.
+- Resolved crashes in Amulet of the Cat and Gloves of Cloud.
+- Fixed Shadowblade crash cases triggered by fall or fire damage when no valid attacker existed.
+- Fixed zombie update crashes after owner death with earlier exits and stronger pawn validation.
+- Fixed DeathWeaver resurrection timing so teleports no longer fail when the respawned pawn is not ready immediately.
+- Fixed a critical class change persistence bug where autosave, round-end save, or disconnect save could write old XP and skill data into the newly selected race.
+- Fixed hot reload and unload safety by cleaning up the native CanAcquire hook and tracked radar timer correctly.
+- Removed delayed reuse of EventPlayerSpawn objects across async boundaries and replaced that path with safe spawn re-entry hooks.
+- Fixed the !race alias collision so command routing is now deterministic between class selection and player info.
+
+ðŸ“¦ Patch Notes â€” Release 2026-01-21
+ðŸ›¡ï¸ Critical Bug Fixes & Stability Hardening
+- **Dead Player Ultimate Exploit**: Fixed critical exploit where dead players could activate ultimate abilities while spectating.
+- **Mage Crash Fix**: Fixed NullReferenceException in ManaShieldEffect.OnStart() that crashed the plugin.
+- **Systematic Hardening**: Performed a file-by-file audit and hardening of ALL 14 classes (Barbarian, Necromancer, Paladin, Mage, Ranger, DwarfEngineer, Shadowblade, DeathWeaver, Rogue, SacredWarrior, Hammerstorm, Shapeshifter, SilentAssassin, Tinker) to prevent NullReferenceExceptions during pawn death/disconnect.
+- **Thread Safety**: Fixed race conditions in `ChangeClass` by ensuring all game state mutations are wrapped in `Server.NextFrame()`.
+- **Core Improvements**: Hardened `EventSystem`, `Warcraft` helpers, and `EffectManager` with robust validity checks for player pawns and services.
+- **Item Fixes**: Resolved crashes in `Amulet of the Cat` and `Gloves of Cloud`.
+- **Shadowblade World Damage**: Fixed crash when taking fall/fire damage by adding null checks for attacker in `PlayerHurt` handler.
+- **Zombie Lifecycle**: Fixed NullReferenceException in zombie updates after owner death by adding early return and robust pawn checks.
+- **DeathWeaver Resurrection**: Fixed timing issue where teleport could fail due to pawn not being ready after `Respawn()` by wrapping in `Server.NextFrame()`.
+
+ðŸ“¦ Patch Notes â€” Release 2025-11-21
+ðŸŽ® Gameplay & AI
+Smart Bots: Bots now evaluate nearby threats/allies and trigger ultimates on their own (burst buffs when enemies push, revives when teammates fall, summons/arrowstorms when enemies group up), making PvE lobbies far less passive.
+Instant Class Swaps: Requested class changes now execute immediately upon death, so swapping races mid-round no longer waits for the next spawn/round start.
+Data Persistence: Disconnecting while controlling a bot now saves the playerâ€™s Warcraft progress instead of skipping the database update, preventing loadout loss when !takeover is active.
+New Player Defaults: Set default class to 'ranger' for new players.
+âš™ï¸ Config & Menu Systems
+Bot Configuration: Added EnableBotUltimates config toggle so server owners can instantly disable the new bot-ultimate logic for niche PvBots/PvP setups without touching code.
+Unified Menus: Replaced the old WASD UI with the latest CS2MenuManager WASD menu implementation so all menus now match upstream behavior and respect the Managerâ€™s config options.
+Menu Polish: Embedded the CS2MenuManager config inside the plugin and suppressed stale â€œActive benefitsâ€ spam while a race swap is queued so players only see the new class summary.
+Unlock Logic: Class selection menu treats total level requirements as inclusive, so races unlock the moment the configured account-wide threshold is reached instead of forcing players to exceed it.
+Diagnostics: Added the cooldown.test admin command to run an in-game CooldownManager diagnostic (multi-timer expiry, reset validation) so regressions can be caught without external test harnesses.
+ðŸ§™ Class Changes & Hero Fixes
+Barbarian: Throwing Axe effect now validates the projectile before cleanup, preventing NullReference spam when the entity is removed early.
+Dwarf Engineer: Fixed potential crash in Build ability when the player disconnects.
+Tinker: Fixed Ultimate timer not stopping correctly on death/round end.
+Ranger: Added safety checks for Ensnare Trap.
+Mage: Added validity checks for Mana Shield and Freeze effects.
+Necromancer: Added safety check for Cheat Death timer.
+Rogue: Added safety check for Smokebomb timer.
+Shapeshifter: Added safety checks for Clone Decoy effect.
+Shadowblade: Fixed indentation issues in Shadowstep logic.
+ðŸ§© Codebase, API & Refactoring
+Smoke Compatibility: Custom smoke spawns now set thrower handles and detonation vectors via schema writes, keeping the build compatible with the CounterStrikeSharp update that made Thrower/SmokeDetonationPos read-only.
+API Fix: Pawn/controller lookups now explicitly cast the smoke thrower from CCSPlayerPawn.Controller to a CCSPlayerController, eliminating the CBasePlayerController.PlayerPawn compile break on the latest API.
+Event Hooks: Dynamic class event listeners now register with their requested hook modes instead of always posting, so pre-hooks (e.g., defensive abilities) fire at the intended point in the engine pipeline.
+Shared Logic:
+Added a shared GiveWeapon<T> helper so grenade/weapon setup across classes runs through one code path instead of duplicating GiveNamedItem glue.
+XP/skill point bookkeeping now lives in AbilityProgression, sharing logic between the XP system, menu UI, and botsâ€”no more ad-hoc free-point math scattered around the codebase.
+Menu/UI scaffolding now runs through MenuBuilder, reusing shared builders for pagination/options.
+Effect-heavy classes can now piggyback on the new delegate-based EffectBuilder for simple timed buffs (e.g., Rogue/Shadowblade invisibility).
+RNG Standardization: All random chance rolls (abilities, items, summons) now route through centralized helpers, ensuring consistent probabilities and making future testing/seeding easier.
+Fluent Binders: Hero classes register events/abilities through new fluent binders, eliminating dozens of repetitive HookEvent/HookAbility lines and keeping future classes consistent.
+Resource Pre-caching: Custom hero folders can now ship .resources/resources.txt manifests that we precache automatically, keeping model/particle props network-safe after live hero updates.
+âš¡ Database & Optimization
+Async Operations: Converted database operations to asynchronous (async/await) to prevent main thread blocking.
+Thread Safety: Implemented SemaphoreSlim for thread-safe SQLite connection handling and switched WarcraftPlayers to ConcurrentDictionary to prevent threading issues.
+Event Handlers: Updated event handlers to support asynchronous player loading and saving.
+Stability: Resolved potential server lag during player connect/disconnect and round end saves.
+Main Thread Execution: Refactored ChangeClass to execute game state mutations on the main thread to fix concurrency issues.
+Error Handling:
+Added error handling to OnClientPutInServerHandler and ShowClassMenu to prevent server crashes on database errors.
+Fixed NullReferenceException in ClassMenu when player data is missing.
+Added logging to identify issues with player data loading.
+ðŸ› ï¸ General Fixes
+Cooldown Manager: Now validates the owning player and ability before firing ready effects, removing stale entries instead of calling PrintToCenter on invalid entities and spamming Guard.IsValidEntity errors.
+Class Swapping: Mid-round class changes now fully reset the previous race (effects/cooldowns) and validate the requested race before instantiation, preventing lingering buffs or invalid class swaps.
+State Reversion: Added error handling and state reversion to ChangeClass to prevent data corruption if a class change fails.
+Database Integrity:
+Fixed SteamID type mismatch (ulong vs long) causing data load failures.
+Added null checks and logging to LoadPlayerFromDatabase to prevent crashes and track issues.
+Ensured default class fallback is persisted correctly.
+ðŸ“¦ Warcraft 4.0.5 - Release 2026-03-22
+ðŸ› ï¸ Crash Diagnostics, Logging, and Server Hardening
+- Added persistent plugin log files under `WarcraftPlugin/logs` so crash investigation no longer depends on live console output.
+- Added breadcrumb logging that writes the last high-risk operation to `warcraft-last-breadcrumb.log` before native trace, scripted damage, summon, and class-change paths execute.
+- Added handlers for unhandled exceptions and unobserved task exceptions so managed failures are captured to disk when possible.
+- Hardened `RayTracer` so missing native signatures are logged and disabled instead of blindly calling invalid pointers.
+- Added diagnostic breadcrumbs and guard rails around scripted damage application in Warcraft helper code.
+- Hardened zombie summon lifecycle with stronger owner, target, pawn, and skeleton validity checks.
+- Hardened drone activation, update, rocket fire, and delayed shot timers to avoid callbacks running against removed entities or disconnected players.
+- Fixed unsafe health and armor mutation paths in extended hurt-event helpers by validating victim pawns and clamping projected values.
+- Expanded error logging around player load, save, class change, menu, and spawn-time class transition paths to improve post-crash forensics.
+
+ðŸ“¦ Warcraft 4.0.7 â€” Update 2026-04-01
+âš”ï¸ Race, Item, and Gameplay Hardening
+- Added a shared derived player-state system for speed, gravity, max-speed slows, and max-health bonuses so overlapping race and item effects no longer overwrite each other with stale values.
+- Added safe pawn and active-weapon helper paths to reduce null-reference crashes in race, item, and effect callbacks.
+- Reworked Boots of Speed, Sock of Feathers, Orb of Frost, Amulet of Vitality, Death Weaver Cripple, Barbarian Bloodlust, Hammerstorm spawn speed, Rogue knife speed, Shadowblade cloak speed, Sacred Warrior passive bonuses, Silent Assassin lightweight, Stun, Mage freeze, and Ranger slow effects so stacked modifiers recompute cleanly when they start or expire.
+- Hardened Sacred Warrior ultimate target selection so it snapshots only valid live pawns before distance ordering and revalidates the target before damage, healing, and visual effects.
+- Hardened Dwarf Engineer build-tool detection and build callbacks so missing weapon metadata, pawns, or services now fail safely instead of throwing.
+- Hardened item tick and event paths for Gloves of Dazzle, Gloves of Wrath, Mask of Death, Ring of Regeneration, and Amulet of the Cat to no-op safely during spawn, death, disconnect, and weapon-state transitions.
+- Aligned the effect lifecycle with the declared API by clearing spawn-scoped effects on spawn before class and item reapplication.
+- Reset derived player state cleanly on spawn, class change, disconnect, and map end so buffs, slows, gravity changes, and max-health bonuses do not leak across gameplay transitions.
+- Fixed a Dwarf Engineer callback crash where `Pickaxe` could subtract a null ray-trace result during `EventWeaponFire`.
+- Hardened the Dwarf Engineer weapon-fire path with extra pawn, active-weapon, and item metadata validity checks before running pickaxe or build-tool logic.
+- Kept the fix within the live event callback path so it remains consistent with CounterStrikeSharp game-event lifetime guidance.
+- Fixed Barbarian throwing-axe callback crashes on API v364 by replacing the custom `EmitSound` function-pointer path with CounterStrikeSharp's official `CBaseEntity` sound API.
+
+📦 **Warcraft 4.1.0 — Massive Database, Stability, & Fixes Update** (2026-05-17)
+
+💾 **Persistence Refactor**
+- Dirty-player saves replaced per-event SQLite writes, so kill XP, assists, bomb rewards, tomes, and skill changes now update memory first and persist through scheduled flush points.
+- All SQLite reads and writes now run through one dedicated background dispatcher that owns the connection instead of fire-and-forget gameplay-thread calls.
+- Autosave, round-end, map-end, and unload persistence now flush only dirty players in transactional batches instead of queueing one save task per connected player.
+- Player and race progress writes now use SQLite UPSERT statements, removing the old existence-check plus insert/update pattern and reducing query overhead.
+- Added SQLite tuning with WAL, synchronous=NORMAL, and usy_timeout=5000 to improve write behavior under load.
+- Class change, disconnect, class-menu reads, map end, and unload now use barrier flushes where correctness matters so progress stays consistent without restoring hot-path DB pressure.
+- Added SaveIntervalSeconds config with a default of 120; set it to   to disable periodic autosave entirely.
+- Added persistence diagnostics for dirty-count, batch size, queue depth, flush reason, and flush duration to make frame-time and save-pressure issues easier to trace.
+
+🛡️ **Safety, Stability & Runtime Hardening**
+- Fixed !resetskills and !factoryreset crashes when player data or live pawns are missing.
+- !factoryreset now skips forced suicide for dead or spectating players and shows safe feedback instead of touching an invalid pawn.
+- Reworked disconnect persistence to capture a final player snapshot and queue a non-blocking save instead of stalling the pre-disconnect hook on SQLite.
+- Reduced map-end and unload database barrier timeouts to 3 seconds and added timeout diagnostics with dirty-count and queue-depth logging.
+- Fixed lethal bonus-damage handling so fatal extra damage now goes through scripted damage and triggers the normal CS2 death sequence.
+- Moved async class-menu display back onto the main thread and added shared fire-and-forget error observation for deferred class-change and persistence work.
+- Fixed an XP persistence edge case where reaching max level could return before the player was marked dirty.
+- Removed Ranger dash debug chat spam from players and routed that diagnostics output through the plugin debug log path instead.
+- Fixed plugin instance lifecycle on load/unload and disposed effect/cooldown systems during unload.
+- Replaced unobserved sync void client loading with observed fire-and-forget task handling.
+- Invalidated cached player snapshots on map and client lifecycle events.
+- Updated skill reset/bot autospend paths to use shared AbilityProgression helpers.
+
+⚡ **Performance & Runtime Optimizations**
+- Cached GetAllClasses() results instead of allocating a fresh array on every lookup.
+- Replaced cooldown-manager ToArray() copies with reusable scratch iteration to reduce tick-time allocations.
+- Reused radar player lookups and skip radar scans entirely when no class listens for spotted-enemy custom events.
+- Replaced synchronous write-through log flushing with a buffered background logger while keeping the same log files and breadcrumb outputs.
+- Added pruning for stale bot-ultimate evaluation handles so long bot-heavy sessions do not accumulate dead entries.
+- Replaced Tinker Drone Swarm's 0.01s repeating orbit timer with the existing drone tick update.
+- Reduced Ranger Arrowstorm visual projectile/timer pressure while preserving its damage cadence.
+- Cached race ability lists so hot paths do not allocate a fresh list on every access.
+- Added safer entity creation and game-thread scheduling helpers for delayed runtime work.
+- Fixed cleanup warnings for Ranger dash storage, WarcraftPlayer index storage, and Amulet owner capture.
+
+⚔️ **Damage & Event Correctness**
+- Moved Talisman of Evasion to victim-side hurt handling so it evades incoming damage instead of cancelling the owner's outgoing damage.
+- Fixed Deathbound Bulwark to restore prevented health and armor on the live pawn, matching the real damage-cancellation path.
+- Kept victim defensive class and item hooks running on lethal player_hurt events.
+- Replaced attacker-wide same-tick hurt suppression with shotgun-only dedupe keyed by attacker, victim, weapon, and tick.
+- Kept victim death cleanup, effect destruction, weapon insurance, and pending class-change handling active for world/null-attacker deaths.
+
+🎯 **Race, Item, & Effect Hardening**
+- Fixed Rogue Smokebomb lethal checks and backstab angle wraparound.
+- Fixed Dagger of Venom poison refresh so item poison is keyed by owner/source and no longer blocks unrelated Shadowblade poison.
+- Hardened Dwarf Engineer pickup flags and delayed entity callbacks.
+- Filtered Shapeshifter weapon restore lists to skip invalid handles, C4, knives, tasers, and temporary utility.
+- Made Amulet of the Cat track and reset silent-footstep hook state during bulk cleanup.
+- Made effect disposal/map-end cleanup finish effects so state contributions and hooks are removed.
+- Hardened EffectManager with disposal, callback exception logging, invalid-owner pruning, and no-tick passive effects.
+- Added per-tick PlayerCache reuse for aura, AoE, radar, advert, and bot scanning paths.
+- Consolidated glove grenade refill logic into reusable GrenadeSupplyEffect.
+- Updated embedded CS2MenuManager WASD menu behavior to preserve menu state across close/choose and clean stale state on disconnect/round end.
+
+🛠️ **Version, Testing, & Dependencies**
+- Bumped ModuleVersion, assembly version, and package version to 4.1.0.
+- Updated CounterStrikeSharp.API to 1.0.368 and refreshed stable package patches, including explicit System.Text.Json 10.0.8.
+- Removed stale packages.config.
+- Made the Release deploy copy path configurable with WarcraftPluginDeployDir instead of copying to a hard-coded server folder.
+- Kept vendored CS2MenuManager's Tomlyn dependency at  .19.0 because upstream CS2MenuManager v1.0.42 still uses that API.
+- Added WarcraftPlugin.Tests with coverage for ability progression, persistence dirty-version handling, SQLite dispatcher ordering/drain completion, duplicate item prevention, and class unlock thresholds.
+- Verified Debug build, Release build, tests, formatter, vulnerable package scan, and outdated package scan.
+- Added unit coverage for damage reduction math, angle wraparound, weapon normalization, shotgun hurt dedupe, and Shapeshifter weapon filtering.
+
+Warcraft Wiki Documentation Update - 2026-05-25
+- Added detailed wiki installation, upgrade, rollback, smoke-test, and developer deploy documentation.
+- Added programmer-facing code structure and contribution guidance for races, items, effects, events, config, localization, and tests.
+- Added player data and persistence documentation covering WarcraftPlayer runtime state, SQLite tables, dirty snapshots, save triggers, and item persistence limits.
+- Added a maintenance checklist for version bumps, validation commands, manual CS2 testing, documentation checks, and rollback readiness.
+- Refreshed wiki and README setup facts for Warcraft 4.1.1, CounterStrikeSharp.API 1.0.368, ConfigVersion 11, package versions, and the 120-second autosave default.
+
+Warcraft 4.1.1 Class Change Hotfix - 2026-05-26
+- Bumped ModuleVersion, assembly version, package version, and version.txt to 4.1.1.
+- Fixed queued race/class changes so menu selections while dead or alive wait for the next round spawn instead of applying immediately on death or same-round respawn.
+- Added explicit queued class-change readiness state, marked at round end and consumed on the next spawn.
+- Fixed non-main-thread CounterStrikeSharp native access in async class-change error logging by capturing player identity before awaits and using captured values after database work.
+- Added database helper overloads for class-change persistence that use captured SteamID/name instead of reading controller native properties after async awaits.
+- Added unit coverage for queued class-change readiness.
+- Fixed ultimate command handling during bot takeover by resolving the active bot controller through CounterStrikeSharp's takeover state, using the bot's Warcraft state for the ability, and keeping feedback on the human client.
+- Added null guards and exception logging around ultimate invocation so missing Warcraft state or an ability failure logs cleanly instead of crashing the server.
+
+Warcraft 4.1.1 Bot-Control and Stability Hotfix - 2026-05-26
+- Kept version fields at 4.1.1 for the same-release hotfix.
+- Hardened bot-takeover ultimate resolution so controlled-bot ultimates use the bot Warcraft state and fail safely when the bot controller cannot be resolved.
+- Added revive-target filtering so bot-controlled Paladin and Death Weaver ultimates cannot revive the human currently controlling that bot.
+- Fixed Rogue Smokebomb cheat-death to run from the death event, respawn safely, and force an instant smoke cloud instead of leaving a bouncing smoke projectile.
+- Added stable WarcraftPlayer identity cleanup for disconnects, including captured slot, controller handle, and SteamID.
+- Hardened Drone, Zombie, and Necromancer summon cleanup against invalid owners, removed entities, failed spawns, and race changes.
+- Restored class appearance safely after Mage freeze and Barbarian bloodlust instead of resetting players to plain white.
+- Added health/armor state replication after direct damage-helper mutations.
+- Added ConfigureAwait(false) to SQLite dispatcher/database awaits used by map-end and unload barriers.
+- Clamped Shadowblade Evasion and Shadowstep rolls to valid skill levels and skipped no-damage events so corrupted/oversized ability data cannot make the race effectively unkillable.
+- Added safe state-change replication for helper-driven color, health, armor, adrenaline, and delayed scale updates to avoid unobserved invalid-entity exceptions after entities are removed.
+- Fixed Mage, Necromancer, and Dwarf Engineer grenade grants by using the correct base weapon wrapper for molotov, smoke, and grenade entities.
+- Reworked Hammerstorm Warcry health through derived max-health state so bonus health survives normal damage/heal interactions and resets cleanly.
+- Reworked Rogue Smokebomb stun through derived speed/max-speed state and stopped invulnerability hits from forcing healed players back to 1 HP.
+- Restored live pawn speed, gravity, max speed, and max health when derived player state is reset on spawn/class cleanup.
+- Enabled Tinker attack drone rocket rolls at 10% per drone level on the first shot of each volley.
+- Changed Mage ultimate behavior from Arcane Dash to Teleport to match localization and updated the race wiki entry.
+- Added Warcraft menu readability preferences with configurable default menu scale/type, player `!wcmenu` settings, SQLite preference persistence, and scaled race/shop/skills menu rendering.
+- Bumped ConfigVersion to 12 for the new menu display configuration fields while keeping plugin version fields unchanged.
+
+Warcraft Unreleased - 2026-07-10
+- Migrated the plugin and test projects to `net10.0` and updated `CounterStrikeSharp.API` to `1.0.370`; deployment now requires the matching CounterStrikeSharp 1.0.370 runtime.
+- Pinned `SQLitePCLRaw.lib.e_sqlite3` to `3.53.3`, replacing the vulnerable transitive native SQLite package reported by the dependency scan.
+- Added the root-admin `!perf.capture [seconds]` diagnostic. It captures Warcraft tick/event min, average, p95, and max timings plus active effects, drones, invisibility entries, player count, dirty-player count, and SQLite queue depth in the persistent log. Captures are opt-in and default to 60 seconds.
+- Replaced one `OnTick` listener per Tinker with a single lifecycle-managed drone scheduler and cleaned it up on drone deactivation, map end, and plugin unload.
+- Removed recurring LINQ/list allocations from bot-ultimate scheduling, invisibility transmit snapshots, drone target scans, Ranger Arrowstorm, and Necromancer poison-cloud scans while preserving their target-selection and gameplay behavior.
+- Added rate-limited warnings for sustained SQLite dispatcher queue pressure without dropping or reordering player-progress writes.
+- Added regression coverage for performance statistics and queue-pressure warning thresholds. Automated validation passed: Debug build, Release build, format verification, vulnerability scan, and 52 tests. Manual 20-player server validation and matching CounterStrikeSharp runtime deployment are required before release.
+- Fixed Warcraft menu lifecycle races that could leave stale menu instances alive after rapid close/reopen actions. Pending next-frame opens now use a per-player generation guard, old expiry timers cannot close a newer menu, and active menus are closed on round end, map end, disconnect, and plugin unload.
+- Made Warcraft's menu type preference apply to class, skills, shop, and settings menus. Selecting ConsoleMenu is now a real renderer isolation test instead of silently opening the WASD center-HTML menu.
+- Added menu-session regression coverage. Automated validation after the menu fix passed: Debug build, Release build, format verification, and 54 tests. Manual test-server validation of repeated `!class`/`!skills` open-close-open cycles is required before release.
+Warcraft 4.2.0
+- Updated the server target to CounterStrikeSharp 1.0.381 on .NET 10 with Metamod:Source KHook support.
+- Moved aim and line-of-sight tracing to the CounterStrikeSharp trace API.
+- Updated the managed and native SQLite dependencies while preserving the Warcraft database schema.
+- Updated the build, test, and custom hero tools for the new SDK.
+

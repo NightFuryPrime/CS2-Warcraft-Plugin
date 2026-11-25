@@ -4,12 +4,16 @@
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=Z9HdF47zPss" target="_blank"><img src="https://img.shields.io/badge/Gameplay-Video-red?style=for-the-badge&logo=youtube" alt="Gameplay Video"></a>
-  <a href="https://github.com/NightFuryPrime/CS2-Warcraft-Plugin/wiki" target="_blank"><img src="https://img.shields.io/badge/Developer-Wiki-blue?style=for-the-badge&logo=github" alt="Developer Wiki"></a>
+  <a href="https://github.com/Wngui/CS2WarcraftMod/wiki" target="_blank"><img src="https://img.shields.io/badge/Developer-Wiki-blue?style=for-the-badge&logo=github" alt="Developer Wiki"></a>
   <a href="https://discord.gg/VvD8aUHCNW" target="_blank"><img src="https://img.shields.io/badge/Join-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 # Warcraft Mod for CS2
 An open-source Warcraft mod for CS2 featuring a fully-fledged RPG system.</br>
+
+⚠️**Notice:** This repository is no longer maintained - For the latest releases, please visit our [Discord](https://discord.gg/VvD8aUHCNW)
+
+Repo-authored wiki source pages are available in [wiki/Home.md](wiki/Home.md).
 
 ## Features
 
@@ -127,15 +131,17 @@ Ultimate can be activated by binding it in the console, example
 ## Setup
 
 **Install the Plugin**
-   - Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html)
-   - Compile project with Visual Studio 2022
+   - Warcraft 4.2.0 uses [CounterStrikeSharp 1.0.381 with runtime](https://github.com/roflmuffin/CounterStrikeSharp/releases/tag/v1.0.381) and [Metamod:Source 2.0 build 1467 or newer with KHook](https://docs.cssharp.dev/docs/guides/getting-started.html).
+   - For a source build, install the [.NET 10.0.404 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) or a later 10.0.4xx patch. Open `WarcraftPlugin/WarcraftPlugin.sln` in Visual Studio 2026, select `Release`, then choose **Build Solution**.
+   - Download the latest [Warcraft release](https://github.com/Wngui/CS2WarcraftMod/releases/latest)
    - Copy the `WarcraftPlugin` folder to `counterstrikesharp -> plugins`
+   - See [Installation and Upgrade](wiki/Installation-and-Upgrade.md) for the detailed install, upgrade, rollback, and developer build runbook.
 
 ## Configuration explanation
 Config path: *counterstrikesharp\configs\plugins\WarcraftPlugin\WarcraftPlugin.json*
 ```jsonc
 {
-  "ConfigVersion": 6,
+  "ConfigVersion": 12,
   "DeactivatedClasses": ["Shapeshifter", "Rogue"], //Disables Shapeshifter & Rogue from the plugin
   "ShowCommandAdverts": true, //Enables adverts teaching new players about available commands
   "DefaultClass": "ranger", //Sets the default class for new players
@@ -144,6 +150,10 @@ Config path: *counterstrikesharp\configs\plugins\WarcraftPlugin\WarcraftPlugin.j
   "XpHeadshotModifier": 0.15, // Experience Modifier for headshots
   "XpKnifeModifier": 0.25, // Experience Modifier for knife kills
   "XpPerRoundWin": 30, // Experience for winning a round
+  "SaveIntervalSeconds": 120, // Dirty-player autosave interval, set to 0 to disable periodic autosave
+  "DefaultMenuScale": "Large", // Small, Normal, Large, ExtraLarge
+  "AllowPlayerMenuPreferences": true, // Lets players save !wcmenu display preferences
+  "DefaultWarcraftMenuType": "WasdMenu", // WasdMenu, CenterHtmlMenu, ChatMenu, ConsoleMenu
   "MatchReset": true, // Reset all character progress at map start/end
   "EnableLevelDifferenceXp": false, // Turn off bonus xp from killing higher level players
   "TotalLevelRequired": { // Total level required to unlock class

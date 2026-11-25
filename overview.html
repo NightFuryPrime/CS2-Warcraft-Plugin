@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2 Warcraft Mod - Legendary Warfare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-color: #ffffff;
+            --text-muted: #a3a3a3;
+            --accent-color: #fbbf24;
+            --accent-hover: #f59e0b;
+            --border-color: #333;
+            --nav-height: 80px;
+            --section-spacing: 100px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+        }
+
+        .logo {
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #0f0f0f 70%);
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #fff, #999);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            background-color: var(--accent-color);
+            color: #000;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Sections */
+        section {
+            padding: var(--section-spacing) 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            margin-bottom: 60px;
+            border-left: 5px solid var(--accent-color);
+            padding-left: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        /* Grid Layouts */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 30px;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        /* Classes Specific */
+        .ability-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .ability-list li {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .ability-list li:last-child {
+            border-bottom: none;
+        }
+
+        .ability-name {
+            font-weight: 700;
+            color: #fff;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .ability-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .ultimate-badge {
+            display: inline-block;
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--accent-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
+
+        /* Items Table */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .item-price {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .item-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Logic & Config */
+        .logic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .code-block {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #d4d4d4;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .cmd {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 50px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">Warcraft Mod <span>CS2</span></div>
+        <div class="nav-links">
+            <a href="#overview">Overview</a>
+            <a href="#mechanics">Game Logic</a>
+            <a href="#classes">Classes</a>
+            <a href="#items">Shop Items</a>
+            <a href="#config">Config</a>
+            <a href="#developer">Developer Guide</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <h1>Legendary Warfare</h1>
+        <p>Experience Counter-Strike 2 like never before. Choose your race, level up your abilities, and dominate the
+            battlefield with powerful magic and items.</p>
+        <a href="#classes" class="btn">Explore Classes</a>
+    </header>
+
+    <section id="overview">
+        <div class="section-header">
+            <h2>Overview</h2>
+        </div>
+        <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 800px;">
+            The CS2 Warcraft Mod is a comprehensive RPG plugin that transforms standard Counter-Strike gameplay. Players
+            earn Experience (XP) by defeating enemies and completing objectives. As they level up, they can unlock and
+            upgrade unique racial abilities and purchase powerful magical items from the shop.
+        </p>
+    </section>
+
+    <section id="mechanics">
+        <div class="section-header">
+            <h2>Game Mechanics</h2>
+        </div>
+        <div class="logic-grid">
+            <div class="card">
+                <h3>Experience & Leveling</h3>
+                <p>Earn XP to level up and gain skill points. Max level is 16.</p>
+                <ul style="list-style: none; color: var(--text-muted);">
+                    <li><strong>Kill:</strong> Base XP + Bonuses</li>
+                    <li><strong>Headshot:</strong> +15% Bonus XP</li>
+                    <li><strong>Knife Kill:</strong> +25% Bonus XP</li>
+                    <li><strong>Level Gap:</strong> Bonus XP for killing higher-level players</li>
+                    <li><strong>Objectives:</strong> XP for Bomb Plant/Defuse, Round Win, Assists</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Menu System</h3>
+                <p>Navigate the mod easily with chat commands.</p>
+                <div class="code-block">
+                    <span class="cmd">!race</span> or <span class="cmd">!class</span> - Open Class Selection<br>
+                    <span class="cmd">!shop</span> or <span class="cmd">!store</span> - Open Item Shop<br>
+                    <span class="cmd">!skills</span> or <span class="cmd">!level</span> - Spend Skill Points<br>
+                    <span class="cmd">!resetskills</span> - Reset Ability Points<br>
+                    <span class="cmd">!info</span> - View Player Stats<br>
+                    <span class="cmd">!ultimate</span> - Use Ultimate Ability (Bind this!)
+                </div>
+            </div>
+            <div class="card">
+                <h3>Database & Persistence</h3>
+                <p>Your progress is safe. The server automatically saves your XP, Level, and Skill distribution for
+                    every race.</p>
+                <p>Data is stored via SQLite in <code>database.db</code>, ensuring fast and reliable access to your
+                    stats every time you connect.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="classes">
+        <div class="section-header">
+            <h2>Classes & Races</h2>
+        </div>
+        <div class="grid">
+            <!-- Ranger -->
+            <div class="card">
+                <h3>Ranger</h3>
+                <p>A nimble warrior who excels at mobility and traps.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Light footed</span>
+                        <span class="ability-desc">Nimbly perform a dash in midair. Cooldown decreases from 18s to
+                            6s.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Ensnare trap</span>
+                        <span class="ability-desc">Place a trap by throwing a decoy that deals 10-50 damage and snares
+                            enemies.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Marksman</span>
+                        <span class="ability-desc">Deal 2-10 bonus damage with scoped weapons.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Arrowstorm <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Ping a point to rain arrows for 10s, hurting and slowing foes.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Barbarian -->
+            <div class="card">
+                <h3>Barbarian</h3>
+                <p>A brute force fighter specializing in close combat and tankiness.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Carnage</span>
+                        <span class="ability-desc">Deal an extra 5-25 damage with shotguns.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Battle-Hardened</span>
+                        <span class="ability-desc">Increase your health by 20-100 HP.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Throwing Axe</span>
+                        <span class="ability-desc">Chance to throw an exploding barrel when firing (3-13%
+                            chance).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Bloodlust <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">For 10s gain infinite ammo, 30% more speed, and constant health
+                            regen.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Death Weaver -->
+            <div class="card">
+                <h3>Death Weaver</h3>
+                <p>A master of dark arts who weakens enemies and raises the dead.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Cripple</span>
+                        <span class="ability-desc">25% chance to slow an enemy for 1.5-3.5 seconds.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Unholy Frenzy</span>
+                        <span class="ability-desc">25% chance to deal 10-50% bonus damage.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Necromancer Master</span>
+                        <span class="ability-desc">65-85% chance to spawn with an assault rifle (AK47/M4A1).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Raise Skeleton <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">80% chance to revive a fallen ally. Cooldown: 60s.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Dwarf Engineer -->
+            <div class="card">
+                <h3>Dwarf Engineer</h3>
+                <p>A builder who constructs defenses and mines for resources.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Build</span>
+                        <span class="ability-desc">Allows you to build structures using the builder tool (3-15
+                            charges).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Pickaxe</span>
+                        <span class="ability-desc">6-30% chance to find grenades when stabbing surfaces.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Stone Skin</span>
+                        <span class="ability-desc">Increase armor by 20-100.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Goldrush! <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Gain 1000 HP and a speed boost for 10s.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Hammerstorm -->
+            <div class="card">
+                <h3>Hammerstorm</h3>
+                <p>A powerful warrior with stunning attacks and cleaving strikes.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Storm Bolt</span>
+                        <span class="ability-desc">25% chance to stun enemies near your target.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Great Cleave</span>
+                        <span class="ability-desc">25% chance to splash damage to nearby enemies.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Warcry</span>
+                        <span class="ability-desc">Gain bonus health (10-30) and movement speed.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Gods Strength <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Increase damage by 25% for 6s.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Mage -->
+            <div class="card">
+                <h3>Mage</h3>
+                <p>A spellcaster who controls fire and ice.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Fireball</span>
+                        <span class="ability-desc">Infuses molotovs with fire magic, causing a huge explosion (40-200
+                            dmg).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Ice Beam</span>
+                        <span class="ability-desc">5-25% chance to freeze enemies in place.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Mana Shield</span>
+                        <span class="ability-desc">Regenerates 1 armor every 5-1s.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Arcane Dash <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Dash rapidly in the direction you're aiming.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Necromancer -->
+            <div class="card">
+                <h3>Necromancer</h3>
+                <p>A summoner who drains life and commands the undead.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Life Drain</span>
+                        <span class="ability-desc">Heal for 6-30% of damage dealt.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Poison Cloud</span>
+                        <span class="ability-desc">Smoke cloud deals 2-10 damage per tick.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Splintered Soul</span>
+                        <span class="ability-desc">16-80% chance to cheat death (respawn with 1 HP).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Raise Dead <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Summon a horde of undead minions to fight for you.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Paladin -->
+            <div class="card">
+                <h3>Paladin</h3>
+                <p>A holy warrior who heals allies and smites foes.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Healing Aura</span>
+                        <span class="ability-desc">Heal allies within range for 1-5 HP every few seconds.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Holy Shield</span>
+                        <span class="ability-desc">Gain an additional 20-100 armor.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Smite</span>
+                        <span class="ability-desc">15-75% chance to strip enemy armor for 5-25 points.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Divine Resurrection <span
+                                class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">80% chance to instantly revive a fallen ally. Cooldown: 60s.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Rogue -->
+            <div class="card">
+                <h3>Rogue</h3>
+                <p>A stealthy assassin who strikes from the shadows.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Stealth</span>
+                        <span class="ability-desc">Become partially invisible for 1-5 seconds when killing
+                            someone.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Sneak Attack</span>
+                        <span class="ability-desc">Deal an additional 5-25 damage when hitting enemies in the
+                            back.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Blade Dance</span>
+                        <span class="ability-desc">Knifing grants 12-60 bonus damage and speed boost.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Smokebomb <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">When nearing death, automatically drop a smokebomb and cheat
+                            death.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sacred Warrior -->
+            <div class="card">
+                <h3>Sacred Warrior</h3>
+                <p>A berserker who gains power as they lose health.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Inner Vitality</span>
+                        <span class="ability-desc">Passively recover 1-5 HP. Heals double when below 40% HP.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Burning Spear</span>
+                        <span class="ability-desc">Lose 5% max HP to set enemies ablaze (1-5 DPS, stacks 3x).</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Berserkers Blood</span>
+                        <span class="ability-desc">Gain 1-4% move speed for each 7% of missing health.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Life Break <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Sacrifice 20% HP to deal 40% of victim's max HP as damage.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Shadowblade -->
+            <div class="card">
+                <h3>Shadowblade</h3>
+                <p>An elusive fighter who teleports and evades attacks.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Shadowstep</span>
+                        <span class="ability-desc">4-20% chance to teleport behind the attacker when taking
+                            damage.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Evasion</span>
+                        <span class="ability-desc">6-30% chance to completely dodge incoming damage.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Venom Strike</span>
+                        <span class="ability-desc">Attacks poison enemies, dealing 1-5 DPS for 4s.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Cloak of Shadows <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Turn invisible and move faster for 6s.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Shapeshifter -->
+            <div class="card">
+                <h3>Shapeshifter</h3>
+                <p>A master of disguise who can mimic enemies and objects.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Adaptive Disguise</span>
+                        <span class="ability-desc">8-40% chance to spawn disguised as an enemy.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Doppelganger</span>
+                        <span class="ability-desc">Create a temporary inanimate clone of yourself.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Imposter Syndrome</span>
+                        <span class="ability-desc">20-100% chance to be notified when revealed by radar.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Morphling <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Transform into an unassuming object (prop).</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Silent Assassin -->
+            <div class="card">
+                <h3>Silent Assassin</h3>
+                <p>A small, fast killer who specializes in knife combat.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Shrink</span>
+                        <span class="ability-desc">Reduce model size by 15-35%.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Lightweight</span>
+                        <span class="ability-desc">Increase speed and reduce gravity.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Assassin's Blade</span>
+                        <span class="ability-desc">40% chance to add bonus knife damage.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Ghost Walk <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Completely invisible for 3 seconds.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tinker -->
+            <div class="card">
+                <h3>Tinker</h3>
+                <p>A tech specialist who deploys drones and traps.</p>
+                <ul class="ability-list">
+                    <li>
+                        <span class="ability-name">Attack Drone</span>
+                        <span class="ability-desc">Deploy a drone that attacks nearby enemies.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Spare Parts</span>
+                        <span class="ability-desc">4-20% chance to not lose ammo when firing.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Spring Trap</span>
+                        <span class="ability-desc">Deploy a trap which launches players into the air.</span>
+                    </li>
+                    <li>
+                        <span class="ability-name">Drone Swarm <span class="ultimate-badge">Ultimate</span></span>
+                        <span class="ability-desc">Summon a swarm of attack drones to damage enemies.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="items">
+        <div class="section-header">
+            <h2>Shop Items</h2>
+        </div>
+        <div class="items-grid">
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Boots of Speed</span>
+                    <span class="item-price">$2,500</span>
+                </div>
+                <div class="item-desc">Increases movement speed by 20%.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Sock of Feathers</span>
+                    <span class="item-price">$1,500</span>
+                </div>
+                <div class="item-desc">Reduces gravity, allowing for higher jumps.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Ring of Regeneration</span>
+                    <span class="item-price">$3,000</span>
+                </div>
+                <div class="item-desc">Regenerates health over time.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Mask of Death</span>
+                    <span class="item-price">$4,000</span>
+                </div>
+                <div class="item-desc">Heals you for a percentage of damage dealt (Lifesteal).</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Amulet of the Cat</span>
+                    <span class="item-price">$4,000</span>
+                </div>
+                <div class="item-desc">Silences your footsteps.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Dagger of Venom</span>
+                    <span class="item-price">$2,500</span>
+                </div>
+                <div class="item-desc">Applies a poison effect to enemies on hit.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Money Siphon Scepter</span>
+                    <span class="item-price">$3,000</span>
+                </div>
+                <div class="item-desc">Steals money from enemies when you damage them.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Orb of Frost</span>
+                    <span class="item-price">$3,500</span>
+                </div>
+                <div class="item-desc">Chance to slow enemies on hit.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Talisman of Evasion</span>
+                    <span class="item-price">$4,000</span>
+                </div>
+                <div class="item-desc">Provides a chance to evade incoming damage.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Amulet of Vitality</span>
+                    <span class="item-price">$3,500</span>
+                </div>
+                <div class="item-desc">Increases your maximum health.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Gloves of Wrath</span>
+                    <span class="item-price">$3,000</span>
+                </div>
+                <div class="item-desc">Receive a HE Grenade every 12s.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Gloves of Cloud</span>
+                    <span class="item-price">$3,000</span>
+                </div>
+                <div class="item-desc">Receive a Smoke Grenade every 12s.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Gloves of Dazzle</span>
+                    <span class="item-price">$3,000</span>
+                </div>
+                <div class="item-desc">Receive a Flashbang every 12s.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Tome of Experience</span>
+                    <span class="item-price">$4,000</span>
+                </div>
+                <div class="item-desc">Instantly grants 50 XP.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Tome of Gambling</span>
+                    <span class="item-price">$8,000</span>
+                </div>
+                <div class="item-desc">Grants a random amount of XP (50-150 XP).</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Weapon Insurance</span>
+                    <span class="item-price">$3,500</span>
+                </div>
+                <div class="item-desc">Restores your weapons in the next round if you die.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Blade Mail</span>
+                    <span class="item-price">$10,000</span>
+                </div>
+                <div class="item-desc">50% chance to reflect 33% of incoming weapon damage back to the attacker.</div>
+            </div>
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Deathbound Bulwark</span>
+                    <span class="item-price">$4,000</span>
+                </div>
+                <div class="item-desc">Reduces weapon damage taken by 25%.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="config">
+        <div class="section-header">
+            <h2>Configuration</h2>
+        </div>
+        <div class="card">
+            <h3>Key Settings</h3>
+            <p>The mod is highly configurable via <code>Config.json</code>.</p>
+            <ul style="list-style: none; color: var(--text-muted);">
+                <li><strong>Max Level:</strong> 16</li>
+                <li><strong>Max Skill Level:</strong> 5</li>
+                <li><strong>XP Per Kill:</strong> 10 (Base)</li>
+                <li><strong>XP Headshot Bonus:</strong> +15%</li>
+                <li><strong>XP Knife Bonus:</strong> +25%</li>
+                <li><strong>Bot Ultimates:</strong> Enabled</li>
+                <li><strong>Class Unlock Levels:</strong>
+                    <ul>
+                        <li>Shadowblade: Level 50</li>
+                        <li>Dwarf Engineer: Level 60</li>
+                        <li>Death Weaver: Level 70</li>
+                        <li>Silent Assassin: Level 80</li>
+                        <li>Hammerstorm: Level 90</li>
+                        <li>Sacred Warrior: Level 100</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="developer">
+        <div class="section-header">
+            <h2>Developer Guide</h2>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 40px;">
+            This section is designed for developers who want to modify the codebase, add new classes, or understand the
+            underlying logic of the CS2 Warcraft Mod.
+        </p>
+
+        <div class="logic-grid">
+            <div class="card" style="grid-column: span 2;">
+                <h3>Architecture Overview</h3>
+                <p>The plugin is built on <code>CounterStrikeSharp</code>. The core logic resides in
+                    <code>WarcraftPlugin.cs</code>, which initializes the following subsystems:</p>
+                <ul style="list-style: disc; margin-left: 20px; color: var(--text-muted);">
+                    <li><strong>XpSystem:</strong> Manages experience gain, leveling, and skill points.</li>
+                    <li><strong>Database:</strong> Handles persistent storage using SQLite and Dapper.</li>
+                    <li><strong>ClassManager:</strong> Loads and manages <code>WarcraftClass</code> instances.</li>
+                    <li><strong>EffectManager:</strong> Handles visual effects and temporary buffs.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>XP Storage Logic</h3>
+                <p>Data is persisted in a SQLite database (<code>database.db</code>). The system uses a write-behind
+                    strategy (periodic saves) and saves on disconnect.</p>
+                <div class="mermaid">
+                    sequenceDiagram
+                    participant Game as Game Event
+                    participant XP as XpSystem
+                    participant RAM as WarcraftPlayer (RAM)
+                    participant DB as Database (SQLite)
+
+                    Game->>XP: Kill/Objective
+                    XP->>RAM: Add XP & Check Level Up
+                    RAM-->>XP: Level Up Event
+                    loop Every 60s / Disconnect
+                    RAM->>DB: SavePlayerToDatabase()
+                    DB->>DB: UPDATE raceinformation
+                    end
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Ability System Logic</h3>
+                <p>Abilities are event-driven. Classes inherit from <code>WarcraftClass</code> and register hooks to
+                    GameEvents.</p>
+                <div class="mermaid">
+                    graph TD
+                    A[EventPlayerHurt] -->|Trigger| B(WarcraftPlugin Listener)
+                    B -->|Dispatch| C{Class Hook Registered?}
+                    C -->|Yes| D[Invoke Class Handler]
+                    D -->|Check| E{Chance & Cooldown}
+                    E -->|Pass| F[Apply Effect / Damage]
+                    E -->|Fail| G[Do Nothing]
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: span 2;">
+                <h3>Database Schema</h3>
+                <p>The database consists of two main tables:</p>
+                <div class="code-block">
+                    -- Stores the player's currently selected race
+                    CREATE TABLE `players` (
+                    `steamid` UNSIGNED BIG INT NOT NULL,
+                    `currentRace` VARCHAR(32) NOT NULL,
+                    `name` VARCHAR(64),
+                    PRIMARY KEY (`steamid`)
+                    );
+
+                    -- Stores progress for EACH race per player
+                    CREATE TABLE `raceinformation` (
+                    `steamid` UNSIGNED BIG INT NOT NULL,
+                    `racename` VARCHAR(32) NOT NULL,
+                    `currentXP` INT NULL DEFAULT 0,
+                    `currentLevel` INT NULL DEFAULT 0,
+                    `amountToLevel` INT NULL DEFAULT 100,
+                    `ability1level` TINYINT NULL DEFAULT 0,
+                    ...
+                    PRIMARY KEY (`steamid`, `racename`)
+                    );
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Adding a New Class</h3>
+                <p>To create a new class, inherit from <code>WarcraftClass</code> and implement the required members.
+                </p>
+                <div class="code-block">
+                    public class MyNewClass : WarcraftClass
+                    {
+                    public override string DisplayName => "My Class";
+                    public override Color DefaultColor => Color.Red;
+                    public override List<IWarcraftAbility> Abilities => [
+                        new WarcraftAbility("Passive", "Description..."),
+                        new WarcraftCooldownAbility("Active", "Desc...", 10f)
+                        ];
+
+                        public override void Register()
+                        {
+                        RegisterHooks()
+                        .Hook<EventPlayerHurt>(OnHurt);
+                            RegisterAbilities()
+                            .Bind(1, OnActiveAbility); // Binds to Ability 2 (Index 1)
+                            }
+
+                            private void OnHurt(EventPlayerHurt @event) { ... }
+                            private void OnActiveAbility() { ... }
+                            }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>CS2 Warcraft Mod &copy; 2024. Built for Counter-Strike 2.</p>
+    </footer>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+</body>
+
+</html>
