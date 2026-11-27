@@ -11,7 +11,7 @@
 # Warcraft Mod for CS2
 An open-source Warcraft mod for CS2 featuring a fully-fledged RPG system.</br>
 
-⚠️**Notice:** This repository is no longer maintained - For the latest releases, please visit our [Discord](https://discord.gg/VvD8aUHCNW)
+⚠️**Notice:** For the latest releases, please visit our [Discord](https://discord.gg/VvD8aUHCNW)
 
 Repo-authored wiki source pages are available in [wiki/Home.md](wiki/Home.md).
 
